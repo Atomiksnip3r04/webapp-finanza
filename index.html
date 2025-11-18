@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FUTURA 2026 | Cloud Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- USIAMO LA VERSIONE PROD PER TOGLIERE AVVISI -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
@@ -34,18 +35,22 @@
                 <h1 class="text-2xl font-bold text-white">Connessione Cloud</h1>
                 <p class="text-slate-400 text-sm mt-2">Inserisci i dati di JSONBin.io</p>
             </div>
-            <div class="space-y-4">
+            <!-- FORM WRAPPER -->
+            <form @submit.prevent="saveSetup" class="space-y-4">
                 <div>
-                    <label class="text-xs text-slate-500 uppercase font-bold">Bin ID (es. 673b...)</label>
-                    <input type="text" v-model="setup.binId" class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
+                    <label class="text-xs text-slate-500 uppercase font-bold">Bin ID</label>
+                    <input type="text" v-model="setup.binId" placeholder="es. 673b..." class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-500 uppercase font-bold">X-Master-Key (es. $2a$...)</label>
-                    <input type="password" v-model="setup.apiKey" class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
+                    <label class="text-xs text-slate-500 uppercase font-bold">X-Master-Key</label>
+                    <input type="password" v-model="setup.apiKey" placeholder="es. $2a$..." class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
                 </div>
-                <button @click="saveSetup" class="w-full btn-primary text-white font-bold py-3 rounded-xl mt-4 transition hover:opacity-90">COLLEGA E PROVA</button>
-                <p v-if="error" class="text-red-400 text-xs text-center mt-2">{{ errorMsg }}</p>
-            </div>
+                <button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-xl mt-4 transition hover:opacity-90">
+                    <span v-if="!loading">COLLEGA E PROVA</span>
+                    <div v-else class="flex justify-center"><div class="loader"></div></div>
+                </button>
+                <p v-if="error" class="text-red-400 text-xs text-center mt-2 font-bold bg-red-900/20 p-2 rounded">{{ errorMsg }}</p>
+            </form>
         </div>
     </div>
 
@@ -56,15 +61,19 @@
                 <i class="fas fa-fingerprint text-3xl text-white"></i>
             </div>
             <h1 class="text-4xl font-bold mb-2 text-white tracking-tight">FUTURA <span class="text-indigo-400">SYNC</span></h1>
-            <div class="relative mt-8">
-                <input type="password" v-model="inputPin" @keyup.enter="checkPin" placeholder="PIN (0000)" class="glass-input w-full text-center text-xl rounded-xl p-4 placeholder-slate-600 focus:border-indigo-500">
-            </div>
-            <button @click="checkPin" class="w-full mt-4 btn-primary text-white font-bold py-4 rounded-xl transition transform active:scale-95">
-                <span v-if="!loading">SBLOCCA & SINCRONIZZA</span>
-                <div v-else class="flex justify-center"><div class="loader"></div></div>
-            </button>
+            
+            <!-- FORM WRAPPER -->
+            <form @submit.prevent="checkPin" class="relative mt-8">
+                <input type="password" v-model="inputPin" placeholder="PIN (0000)" class="glass-input w-full text-center text-xl rounded-xl p-4 placeholder-slate-600 focus:border-indigo-500">
+                
+                <button type="submit" class="w-full mt-4 btn-primary text-white font-bold py-4 rounded-xl transition transform active:scale-95">
+                    <span v-if="!loading">SBLOCCA</span>
+                    <div v-else class="flex justify-center"><div class="loader"></div></div>
+                </button>
+            </form>
+            
             <div class="mt-4 text-center">
-                 <p v-if="error" class="text-red-400 text-sm font-semibold mb-2">{{ errorMsg }}</p>
+                 <p v-if="error" class="text-red-400 text-sm font-semibold mb-2 bg-red-900/20 p-2 rounded">{{ errorMsg }}</p>
                  <button @click="resetConfig" class="text-xs text-slate-500 underline hover:text-slate-300">Reset Configurazione Cloud</button>
             </div>
         </div>
@@ -111,15 +120,15 @@
             <div class="lg:col-span-4 space-y-6">
                 <div class="glass-card rounded-2xl p-5">
                     <h2 class="text-lg font-bold text-white mb-4"><i class="fas fa-plus-circle text-indigo-400 mr-2"></i>Manuale</h2>
-                    <div class="space-y-3">
+                    <form @submit.prevent="addTransaction" class="space-y-3">
                         <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900/50 rounded-xl">
-                            <button @click="newTrans.type = 'in'" class="py-2 rounded-lg text-sm font-bold transition-all" :class="newTrans.type === 'in' ? 'bg-green-600 text-white' : 'text-slate-400'">Entrata</button>
-                            <button @click="newTrans.type = 'out'" class="py-2 rounded-lg text-sm font-bold transition-all" :class="newTrans.type === 'out' ? 'bg-red-600 text-white' : 'text-slate-400'">Uscita</button>
+                            <button type="button" @click="newTrans.type = 'in'" class="py-2 rounded-lg text-sm font-bold transition-all" :class="newTrans.type === 'in' ? 'bg-green-600 text-white' : 'text-slate-400'">Entrata</button>
+                            <button type="button" @click="newTrans.type = 'out'" class="py-2 rounded-lg text-sm font-bold transition-all" :class="newTrans.type === 'out' ? 'bg-red-600 text-white' : 'text-slate-400'">Uscita</button>
                         </div>
                         <input type="text" v-model="newTrans.desc" placeholder="Descrizione" class="glass-input w-full rounded-xl p-3 text-sm">
-                        <input type="number" v-model="newTrans.amount" placeholder="0.00" class="glass-input w-full rounded-xl p-3 text-sm font-mono" @keyup.enter="addTransaction">
-                        <button @click="addTransaction" class="w-full btn-primary text-white font-bold py-3 rounded-xl text-sm" :disabled="!newTrans.desc || !newTrans.amount">AGGIUNGI</button>
-                    </div>
+                        <input type="number" v-model="newTrans.amount" placeholder="0.00" step="0.01" class="glass-input w-full rounded-xl p-3 text-sm font-mono">
+                        <button type="submit" class="w-full btn-primary text-white font-bold py-3 rounded-xl text-sm" :disabled="!newTrans.desc || !newTrans.amount">AGGIUNGI</button>
+                    </form>
                 </div>
                 <div class="glass-card rounded-2xl p-5 h-[400px] flex flex-col">
                     <h2 class="text-lg font-bold text-white mb-4"><i class="fas fa-history text-slate-400 mr-2"></i>Storico</h2>
@@ -203,21 +212,18 @@
                 if(!this.setup.binId || !this.setup.apiKey) {
                     this.error = true; this.errorMsg = "Inserisci tutti i campi"; return;
                 }
-                // CLEANUP INPUTS (TRIM SPACES)
                 this.setup.binId = this.setup.binId.trim();
                 this.setup.apiKey = this.setup.apiKey.trim();
-                
-                // Test Connection immediately
                 this.loading = true;
+                this.error = false; // Reset error
                 try {
                     await this.loadDataFromCloud();
                     localStorage.setItem('futura_cloud_config', JSON.stringify(this.setup));
                     this.needsSetup = false;
                     this.authenticated = true; 
-                    this.error = false;
                 } catch(e) {
                     this.error = true;
-                    this.errorMsg = "Errore Connessione: " + e.message + ". Controlla Bin ID e Key.";
+                    this.errorMsg = "CONNESSIONE FALLITA: " + e.message;
                 } finally {
                     this.loading = false;
                 }
@@ -235,34 +241,33 @@
                         this.authenticated = true;
                     } catch (e) {
                         this.error = true;
-                        this.errorMsg = "Errore Cloud: " + e.message;
+                        this.errorMsg = "ERRORE CLOUD: " + e.message;
                     } finally { this.loading = false; }
                 } else {
                     this.error = true; this.errorMsg = "PIN Errato"; this.inputPin = '';
                 }
             },
             async loadDataFromCloud() {
-                // FORCE TRIM AGAIN JUST IN CASE
                 const binId = this.setup.binId.trim();
                 const apiKey = this.setup.apiKey.trim();
 
+                // FETCH DATA
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                     method: 'GET',
                     headers: { 
                         'X-Master-Key': apiKey,
-                        'X-Bin-Meta': 'false' // IMPORTANT: Returns raw JSON
+                        'X-Bin-Meta': 'false'
                     }
                 });
                 
                 if (!response.ok) {
-                    if(response.status === 403 || response.status === 401) throw new Error("Chiave errata (403)");
-                    if(response.status === 404) throw new Error("Bin ID inesistente (404)");
-                    throw new Error(`Status ${response.status}`);
+                    if(response.status === 404) throw new Error("BIN ID NON TROVATO (Controlla l'ID)");
+                    if(response.status === 403 || response.status === 401) throw new Error("CHIAVE ERRATA (Controlla Master Key)");
+                    throw new Error(`Errore Server (${response.status})`);
                 }
                 
                 const data = await response.json();
                 
-                // Apply data safely
                 if(data.currentBalance !== undefined) this.currentBalance = data.currentBalance;
                 if(data.futureIncomes) this.futureIncomes = data.futureIncomes;
                 if(data.manualTransactions) this.manualTransactions = data.manualTransactions;
