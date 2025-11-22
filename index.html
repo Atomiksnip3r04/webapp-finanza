@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FUTURA 2026 | Cloud Sync</title>
+    <!-- SEO & META TAGS -->
+    <title>Gestione Finanze Personali - Futura Cloud Sync</title>
+    <meta name="description" content="Piattaforma avanzata per la gestione finanze personali. Monitora spese, entrate, prestiti e debiti con Futura Cloud Sync. Ottimizza il tuo budget e il risparmio.">
+    <meta name="keywords" content="gestione finanze personali, budget, spese, entrate, prestiti, risparmio, dashboard finanziaria">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- USIAMO LA VERSIONE PROD PER TOGLIERE AVVISI -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -83,7 +87,7 @@
     <div v-else class="animate-enter pb-20">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-white">Dashboard Finanziaria</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-white">Gestione Finanze Personali</h1>
                 <div class="flex items-center gap-2 text-slate-400 text-xs font-mono mt-1">
                     <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></span>
                     ONLINE • Sync: {{ lastSavedTime }}
@@ -160,6 +164,63 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- NUOVO: Gestione Crediti / Prestiti -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-white"><i class="fas fa-hand-holding-usd text-yellow-400 mr-2"></i>Crediti & Prestiti</h2>
+                        <span class="text-xs font-mono bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded">Tot. Attivi: € {{ formatNumber(totalActiveCredits) }}</span>
+                    </div>
+                    
+                    <!-- Form Aggiunta Prestito -->
+                    <div class="bg-slate-800/40 rounded-xl p-4 mb-6 border border-dashed border-slate-700">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Registra Prestito (Uscita)</h4>
+                        <form @submit.prevent="addLoan" class="grid grid-cols-1 md:grid-cols-12 gap-2">
+                            <div class="md:col-span-3">
+                                <input type="text" v-model="newLoan.debtor" placeholder="Chi (Debitore)?" class="glass-input w-full rounded-lg p-2 text-sm">
+                            </div>
+                            <div class="md:col-span-5">
+                                <input type="text" v-model="newLoan.desc" placeholder="Descrizione prestito" class="glass-input w-full rounded-lg p-2 text-sm">
+                            </div>
+                            <div class="md:col-span-2">
+                                <input type="number" v-model="newLoan.amount" placeholder="€" step="0.01" class="glass-input w-full rounded-lg p-2 text-sm font-mono">
+                            </div>
+                            <div class="md:col-span-2">
+                                <button type="submit" class="w-full h-full bg-yellow-600/80 hover:bg-yellow-600 text-white text-xs font-bold rounded-lg transition" :disabled="!newLoan.debtor || !newLoan.amount">PRESTA</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista Prestiti Attivi -->
+                    <div class="space-y-3">
+                        <div v-if="activeLoans.length === 0" class="text-center text-slate-500 text-sm py-4 italic">Nessun credito attivo</div>
+                        <div v-for="loan in activeLoans" :key="loan.id" class="relative overflow-hidden p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-white">{{ loan.debtor }}</span>
+                                        <span class="text-xs text-slate-500">{{ loan.date }}</span>
+                                        <span v-if="loan.repaidAmount >= loan.originalAmount" class="text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded">COMPLETATO</span>
+                                    </div>
+                                    <div class="text-sm text-slate-300">{{ loan.desc }}</div>
+                                    <div class="mt-1 text-xs text-slate-400">Rimborsati: <span class="text-green-400 font-mono">€ {{ formatNumber(loan.repaidAmount) }}</span> su <span class="text-white font-mono">€ {{ formatNumber(loan.originalAmount) }}</span></div>
+                                    <!-- Progress bar -->
+                                    <div class="mt-2 h-1 w-32 bg-slate-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-green-500" :style="{ width: Math.min((loan.repaidAmount / loan.originalAmount) * 100, 100) + '%' }"></div>
+                                    </div>
+                                </div>
+                                
+                                <div v-if="loan.repaidAmount < loan.originalAmount" class="flex items-center gap-2 w-full md:w-auto">
+                                    <input type="number" v-model="repayInput[loan.id]" placeholder="Rimborsa..." class="glass-input w-24 text-xs p-2 rounded-lg font-mono">
+                                    <button @click="repayLoan(loan.id)" class="bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-100 text-xs font-bold py-2 px-3 rounded-lg transition">
+                                        <i class="fas fa-download mr-1"></i> INCASSA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="glass-card rounded-2xl p-5">
                      <div class="flex justify-between bg-red-500/10 p-3 rounded-lg border border-red-500/20">
                         <span class="text-red-200 text-sm">Uscite Future Fisse (PC + Varie)</span>
@@ -182,6 +243,7 @@
                 lastSavedTime: '...',
                 currentBalance: 110,
                 manualTransactions: [],
+                activeLoans: [], // NUOVO: Lista prestiti attivi
                 futureIncomes: [
                     { desc: "Restituzione residuo papà", amount: 800, received: false },
                     { desc: "Due rate EduNet19 (10%+10%)", amount: 560, received: false },
@@ -189,7 +251,9 @@
                     { desc: "Residuo Progetto Franco", amount: 200, received: false },
                     { desc: "Borsa di Studio Unimi", amount: 1936, received: false }
                 ],
-                newTrans: { desc: '', amount: null, type: 'out' }
+                newTrans: { desc: '', amount: null, type: 'out' },
+                newLoan: { debtor: '', desc: '', amount: null }, // NUOVO: Form prestito
+                repayInput: {} // NUOVO: Gestione input rimborsi per ogni prestito
             }
         },
         computed: {
@@ -199,7 +263,14 @@
             loanProgress() { return Math.round((this.totalRepaid / this.totalLoanOriginal) * 100); },
             forecastBalance() {
                 let pendingIncome = this.futureIncomes.filter(i => !i.received).reduce((acc, i) => acc + i.amount, 0);
+                // Calcolo anche i prestiti attivi non ancora rimborsati come "soldi fuori ma miei" (Opzionale: per ora tengo logica semplice)
+                // Se volessi includere i crediti futuri nel forecast:
+                // let pendingLoans = this.activeLoans.reduce((acc, l) => acc + (l.originalAmount - l.repaidAmount), 0);
                 return this.currentBalance + pendingIncome - 526;
+            },
+            // Calcolo totale crediti aperti
+            totalActiveCredits() {
+                return this.activeLoans.reduce((acc, l) => acc + (l.originalAmount - l.repaidAmount), 0);
             }
         },
         mounted() {
@@ -271,6 +342,7 @@
                 if(data.currentBalance !== undefined) this.currentBalance = data.currentBalance;
                 if(data.futureIncomes) this.futureIncomes = data.futureIncomes;
                 if(data.manualTransactions) this.manualTransactions = data.manualTransactions;
+                if(data.activeLoans) this.activeLoans = data.activeLoans; // NUOVO: Carica prestiti
                 if(data.lastSavedTime) this.lastSavedTime = data.lastSavedTime;
             },
             async syncData(manual = false) {
@@ -281,6 +353,7 @@
                     currentBalance: this.currentBalance,
                     futureIncomes: this.futureIncomes,
                     manualTransactions: this.manualTransactions,
+                    activeLoans: this.activeLoans, // NUOVO: Salva prestiti
                     lastSavedTime: now
                 };
                 try {
@@ -322,6 +395,52 @@
                 const t = this.manualTransactions[index];
                 if(t.type === 'in') this.currentBalance -= t.amount; else this.currentBalance += t.amount;
                 this.manualTransactions.splice(index, 1);
+                this.syncData();
+            },
+            // NUOVO: Metodi per gestione prestiti
+            addLoan() {
+                if(!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
+                const amount = parseFloat(this.newLoan.amount);
+                // Un prestito è un'uscita di cassa (spesa immediata, credito futuro)
+                this.currentBalance -= amount;
+                
+                this.activeLoans.unshift({
+                    id: Date.now(),
+                    debtor: this.newLoan.debtor,
+                    desc: this.newLoan.desc,
+                    originalAmount: amount,
+                    repaidAmount: 0,
+                    date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    history: []
+                });
+                
+                // Resetta form
+                this.newLoan.debtor = ''; 
+                this.newLoan.desc = ''; 
+                this.newLoan.amount = null;
+                
+                this.syncData();
+            },
+            repayLoan(loanId) {
+                const amount = parseFloat(this.repayInput[loanId]);
+                if(!amount || amount <= 0) return;
+                
+                const loan = this.activeLoans.find(l => l.id === loanId);
+                if(!loan) return;
+                
+                // Il rimborso è un'entrata di cassa
+                this.currentBalance += amount;
+                loan.repaidAmount += amount;
+                
+                // Aggiungi allo storico del prestito
+                if(!loan.history) loan.history = [];
+                loan.history.push({
+                    date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+                    amount: amount
+                });
+                
+                // Reset input
+                this.repayInput[loanId] = null;
                 this.syncData();
             },
             logout() { this.authenticated = false; this.inputPin = ''; }
