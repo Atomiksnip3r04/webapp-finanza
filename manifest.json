@@ -8,11 +8,7 @@
   "orientation": "portrait-primary",
   "theme_color": "#6366f1",
   "background_color": "#0f172a",
-  "categories": [
-    "finance",
-    "productivity",
-    "business"
-  ],
+  "categories": ["finance", "productivity", "business"],
   "lang": "it-IT",
   "icons": [
     {
@@ -33,7 +29,22 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  }
-],
-"screenshots": []
+  ],
+  "shortcuts": [
+    {
+      "name": "Aggiungi Transazione",
+      "short_name": "Nuova",
+      "description": "Aggiungi una nuova transazione",
+      "url": "?action=new",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sincronizza",
+      "short_name": "Sync",
+      "description": "Sincronizza dati con cloud",
+      "url": "?action=sync",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": []
 }
