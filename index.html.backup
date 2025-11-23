@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <!-- SEO & META TAGS -->
     <title>Gestione Finanze Personali - Futura Cloud Sync</title>
     <meta name="description"
@@ -22,6 +21,7 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- USIAMO LA VERSIONE PROD PER TOGLIERE AVVISI -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -123,6 +123,7 @@
                     <h1 class="text-2xl font-bold text-white">Connessione Cloud</h1>
                     <p class="text-slate-400 text-sm mt-2">Inserisci i dati di JSONBin.io</p>
                 </div>
+                <!-- FORM WRAPPER -->
                 <form @submit.prevent="saveSetup" class="space-y-4">
                     <div>
                         <label class="text-xs text-slate-500 uppercase font-bold">Bin ID</label>
@@ -158,6 +159,7 @@
                 <h1 class="text-4xl font-bold mb-2 text-white tracking-tight">FUTURA <span
                         class="text-indigo-400">SYNC</span></h1>
 
+                <!-- FORM WRAPPER -->
                 <form @submit.prevent="checkPin" class="relative mt-8">
                     <input type="password" v-model="inputPin" placeholder="PIN (0000)"
                         class="glass-input w-full text-center text-xl rounded-xl p-4 placeholder-slate-600 focus:border-indigo-500">
@@ -298,6 +300,7 @@
                         </div>
                     </div>
 
+                    <!-- NUOVO: Gestione Crediti / Prestiti -->
                     <div class="glass-card rounded-2xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-lg font-bold text-white"><i
@@ -306,6 +309,7 @@
                                 Attivi: € {{ formatNumber(totalActiveCredits) }}</span>
                         </div>
 
+                        <!-- Form Aggiunta Prestito -->
                         <div class="bg-slate-800/40 rounded-xl p-4 mb-6 border border-dashed border-slate-700">
                             <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Registra Prestito (Uscita)</h4>
                             <form @submit.prevent="addLoan" class="grid grid-cols-1 md:grid-cols-12 gap-2">
@@ -329,6 +333,7 @@
                             </form>
                         </div>
 
+                        <!-- Lista Prestiti Attivi -->
                         <div class="space-y-3">
                             <div v-if="activeLoans.length === 0" class="text-center text-slate-500 text-sm py-4 italic">
                                 Nessun credito attivo</div>
@@ -348,6 +353,7 @@
                                                 class="text-green-400 font-mono">€ {{ formatNumber(loan.repaidAmount)
                                                 }}</span> su <span class="text-white font-mono">€ {{
                                                 formatNumber(loan.originalAmount) }}</span></div>
+                                        <!-- Progress bar -->
                                         <div class="mt-2 h-1 w-32 bg-slate-700 rounded-full overflow-hidden">
                                             <div class="h-full bg-green-500"
                                                 :style="{ width: Math.min((loan.repaidAmount / loan.originalAmount) * 100, 100) + '%' }">
@@ -386,13 +392,7 @@
         createApp({
             data() {
                 return {
-                    needsSetup: false,
-                    authenticated: false,
-                    loading: false,
-                    isSyncing: false,
-                    error: false,
-                    errorMsg: '',
-                    inputPin: '',
+                    needsSetup: false, authenticated: false, loading: false, isSyncing: false, error: false, errorMsg: '', inputPin: '',
                     setup: { binId: '', apiKey: '' },
                     lastSavedTime: '...',
                     currentBalance: 110,
@@ -412,7 +412,7 @@
                     categories: [],
                     showInstallPrompt: false,
                     installEvent: null
-                };
+                }
             },
             computed: {
                 totalLoanOriginal() { return 1680; },
@@ -421,7 +421,7 @@
                 loanProgress() { return Math.round((this.totalRepaid / this.totalLoanOriginal) * 100); },
                 forecastBalance() {
                     let pendingIncome = this.futureIncomes.filter(i => !i.received).reduce((acc, i) => acc + i.amount, 0);
-                    const recurringForecast = typeof recurringManager !== 'undefined' ? recurringManager.calculateFutureImpact(30) : { netImpact: 0 };
+                    const recurringForecast = recurringManager.calculateFutureImpact(30);
                     return this.currentBalance + pendingIncome + recurringForecast.netImpact - 526;
                 },
                 totalActiveCredits() {
@@ -429,6 +429,7 @@
                 }
             },
             async mounted() {
+                // Setup cloud config
                 const cloudConfig = localStorage.getItem('futura_cloud_config');
                 if (!cloudConfig) {
                     this.needsSetup = true;
@@ -437,9 +438,7 @@
                 }
 
                 // Load categories
-                if (typeof categoryManager !== 'undefined') {
-                    this.categories = categoryManager.getAllCategories();
-                }
+                this.categories = categoryManager.getAllCategories();
 
                 // Register service worker
                 this.registerServiceWorker();
@@ -449,276 +448,379 @@
 
                 // Request notification permission dopo qualche secondo
                 setTimeout(() => {
-                    if (typeof notificationManager !== 'undefined' && notificationManager.permission === 'default') {
-                        this.requestNotificationPermission();
-                    }
-                }, 5000);
-            },
-            methods: {
-                async saveSetup() {
-                    if (!this.setup.binId || !this.setup.apiKey) {
-                        this.error = true;
-                        this.errorMsg = "Inserisci tutti i campi";
-                        return;
-                    }
-                    this.setup.binId = this.setup.binId.trim();
-                    this.setup.apiKey = this.setup.apiKey.trim();
-                    this.loading = true;
-                    this.error = false;
-                    try {
-                        await this.loadDataFromCloud();
-                        localStorage.setItem('futura_cloud_config', JSON.stringify(this.setup));
-                        this.needsSetup = false;
-                        this.authenticated = true;
-
-                        // Initialize SyncManager
-                        if (typeof SyncManager !== 'undefined') {
-                            this.syncManager = new SyncManager(this.setup.binId, this.setup.apiKey);
-                            this.syncManager.startAutoSync(5);
-                        }
-                    } catch (e) {
-                        this.error = true;
-                        this.errorMsg = "CONNESSIONE FALLITA: " + e.message;
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-                resetConfig() {
-                    localStorage.removeItem('futura_cloud_config');
-                    location.reload();
-                },
+                    if (notificationManager.permission === 'default') {
                 async checkPin() {
-                    if (this.inputPin === '0000') {
-                        this.loading = true;
-                        this.error = false;
-                        try {
-                            await this.loadDataFromCloud();
-                            this.authenticated = true;
-                        } catch (e) {
-                            this.error = true;
-                            this.errorMsg = "ERRORE CLOUD: " + e.message;
-                        } finally {
-                            this.loading = false;
-                        }
-                    } else {
-                        this.error = true;
-                        this.errorMsg = "PIN Errato";
-                        this.inputPin = '';
-                    }
-                },
-                async loadDataFromCloud() {
-                    const binId = this.setup.binId.trim();
-                    const apiKey = this.setup.apiKey.trim();
-
-                    const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Master-Key': apiKey,
-                            'X-Bin-Meta': 'false'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 404) throw new Error("BIN ID NON TROVATO (Controlla l'ID)");
-                        if (response.status === 403 || response.status === 401) throw new Error("CHIAVE ERRATA (Controlla Master Key)");
-                        throw new Error(`Errore Server (${response.status})`);
-                    }
-
-                    const data = await response.json();
-
-                    if (data.currentBalance !== undefined) this.currentBalance = data.currentBalance;
-                    if (data.futureIncomes) this.futureIncomes = data.futureIncomes;
-                    if (data.manualTransactions) this.manualTransactions = data.manualTransactions;
-                    if (data.activeLoans) this.activeLoans = data.activeLoans;
-                    if (data.lastSavedTime) this.lastSavedTime = data.lastSavedTime;
-                },
-                async syncData(manual = false) {
-                    this.isSyncing = true;
-                    const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-                    this.lastSavedTime = now;
-                    const payload = {
-                        currentBalance: this.currentBalance,
-                        futureIncomes: this.futureIncomes,
-                        manualTransactions: this.manualTransactions,
-                        activeLoans: this.activeLoans,
-                        lastSavedTime: now
-                    };
-                    try {
-                        const binId = this.setup.binId.trim();
-                        const apiKey = this.setup.apiKey.trim();
-
-                        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-                            body: JSON.stringify(payload)
-                        });
-                        if (manual) {
-                            const icon = this.$refs.syncIcon;
-                            icon.className = "fas fa-check text-green-400";
-                            setTimeout(() => icon.className = "fas fa-cloud-upload-alt", 1500);
-                        }
-                    } catch (e) {
-                        alert("Errore salvataggio: " + e.message);
-                    } finally {
-                        this.isSyncing = false;
-                    }
-                },
-                formatNumber(val) {
-                    return val.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-                },
-                toggleIncome(index) {
-                    const item = this.futureIncomes[index];
-                    item.received = !item.received;
-                    if (item.received) this.currentBalance += item.amount;
-                    else this.currentBalance -= item.amount;
-                    this.syncData();
-                },
-                addTransaction() {
-                    if (!this.newTrans.desc || !this.newTrans.amount) return;
-                    const amount = parseFloat(this.newTrans.amount);
-                    if (this.newTrans.type === 'in') this.currentBalance += amount;
-                    else this.currentBalance -= amount;
-
-                    let category = this.newTrans.category;
-                    if (typeof categoryManager !== 'undefined' && (!category || category === 'other')) {
-                        category = categoryManager.autoCategorizeDinámico(this.newTrans.desc);
-                    }
-
-                    this.manualTransactions.unshift({
-                        id: typeof generateId !== 'undefined' ? generateId() : Date.now(),
-                        desc: this.newTrans.desc,
-                        amount: amount,
-                        type: this.newTrans.type,
-                        category: category,
-                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-                        timestamp: new Date().toISOString()
-                    });
-
-                    this.newTrans.desc = '';
-                    this.newTrans.amount = null;
-                    this.newTrans.category = 'other';
-                    this.syncData();
-
-                    // Check budget alerts
-                    if (typeof budgetManager !== 'undefined') {
-                        const alerts = budgetManager.checkBudgetAlerts(this.manualTransactions);
-                        alerts.forEach(alert => {
-                            if (typeof notificationManager !== 'undefined') {
-                                if (alert.type === 'exceeded') {
-                                    notificationManager.notifyBudgetExceeded(alert.budget.category, Math.abs(alert.budget.amount - alert.budget.spent));
-                                } else if (alert.type === 'warning') {
-                                    notificationManager.notifyBudgetWarning(alert.budget.category, alert.percentage);
-                                }
+                            if (this.inputPin === '0000') {
+                                this.loading = true;
+                                this.error = false;
+                                try {
+                                    await this.loadDataFromCloud();
+                                    this.authenticated = true;
+                                } catch (e) {
+                                    this.error = true;
+                                    this.errorMsg = "ERRORE CLOUD: " + e.message;
+                                } finally { this.loading = false; }
+                            } else {
+                                this.error = true; this.errorMsg = "PIN Errato"; this.inputPin = '';
                             }
-                        });
-                    }
-                },
-                removeTransaction(index) {
-                    const t = this.manualTransactions[index];
-                    if (t.type === 'in') this.currentBalance -= t.amount;
-                    else this.currentBalance += t.amount;
-                    this.manualTransactions.splice(index, 1);
-                    this.syncData();
-                },
-                addLoan() {
-                    if (!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
-                    const amount = parseFloat(this.newLoan.amount);
-                    this.currentBalance -= amount;
+                        },
+                async loadDataFromCloud() {
+                            const binId = this.setup.binId.trim();
+                            const apiKey = this.setup.apiKey.trim();
 
-                    this.activeLoans.unshift({
-                        id: Date.now(),
-                        debtor: this.newLoan.debtor,
-                        desc: this.newLoan.desc,
-                        originalAmount: amount,
-                        repaidAmount: 0,
-                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
-                        history: []
-                    });
-
-                    this.newLoan.debtor = '';
-                    this.newLoan.desc = '';
-                    this.newLoan.amount = null;
-                    this.syncData();
-                },
-                repayLoan(loanId) {
-                    const amount = parseFloat(this.repayInput[loanId]);
-                    if (!amount || amount <= 0) return;
-
-                    const loan = this.activeLoans.find(l => l.id === loanId);
-                    if (!loan) return;
-
-                    this.currentBalance += amount;
-                    loan.repaidAmount += amount;
-
-                    if (!loan.history) loan.history = [];
-                    loan.history.push({
-                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
-                        amount: amount
-                    });
-
-                    this.repayInput[loanId] = null;
-                    this.syncData();
-                },
-                async registerServiceWorker() {
-                    if ('serviceWorker' in navigator) {
-                        try {
-                            const registration = await navigator.serviceWorker.register('/sw.js');
-                            console.log('[PWA] Service Worker registered:', registration.scope);
-
-                            registration.addEventListener('updatefound', () => {
-                                const newWorker = registration.installing;
-                                newWorker.addEventListener('statechange', () => {
-                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        console.log('[PWA] New version available, reload to update');
-                                    }
-                                });
+                            // FETCH DATA
+                            const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                                method: 'GET',
+                                headers: {
+                                    'X-Master-Key': apiKey,
+                                    'X-Bin-Meta': 'false'
+                                }
                             });
-                        } catch (error) {
-                            console.error('[PWA] Service Worker registration failed:', error);
-                        }
-                    }
-                },
-                setupPWAInstall() {
-                    window.addEventListener('beforeinstallprompt', (e) => {
-                        e.preventDefault();
-                        this.installEvent = e;
-                        this.showInstallPrompt = true;
-                        console.log('[PWA] Install prompt ready');
-                    });
 
-                    window.addEventListener('appinstalled', () => {
-                        this.showInstallPrompt = false;
-                        this.installEvent = null;
-                        console.log('[PWA] App installed');
-                    });
-                },
+                            if (!response.ok) {
+                                if (response.status === 404) throw new Error("BIN ID NON TROVATO (Controlla l'ID)");
+                                if (response.status === 403 || response.status === 401) throw new Error("CHIAVE ERRATA (Controlla Master Key)");
+                                throw new Error(`Errore Server (${response.status})`);
+                            }
+
+                            const data = await response.json();
+
+                            if (data.currentBalance !== undefined) this.currentBalance = data.currentBalance;
+                            if (data.futureIncomes) this.futureIncomes = data.futureIncomes;
+                            if (data.manualTransactions) this.manualTransactions = data.manualTransactions;
+                            if (data.activeLoans) this.activeLoans = data.activeLoans; // NUOVO: Carica prestiti
+                            if (data.lastSavedTime) this.lastSavedTime = data.lastSavedTime;
+                        },
+                async syncData(manual = false) {
+                            this.isSyncing = true;
+                            const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                            this.lastSavedTime = now;
+                            const payload = {
+                                currentBalance: this.currentBalance,
+                                futureIncomes: this.futureIncomes,
+                                manualTransactions: this.manualTransactions,
+                                activeLoans: this.activeLoans, // NUOVO: Salva prestiti
+                                lastSavedTime: now
+                            };
+                            try {
+                                const binId = this.setup.binId.trim();
+                                const apiKey = this.setup.apiKey.trim();
+
+                                await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+                                    body: JSON.stringify(payload)
+                                });
+                                if (manual) {
+                                    const icon = this.$refs.syncIcon;
+                                    icon.className = "fas fa-check text-green-400";
+                                    setTimeout(() => icon.className = "fas fa-cloud-upload-alt", 1500);
+                                }
+                            } catch (e) { alert("Errore salvataggio: " + e.message); }
+                            finally { this.isSyncing = false; }
+                        },
+                        formatNumber(val) { return val.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); },
+                        toggleIncome(index) {
+                            this.syncData();
+                        },
+                        // NUOVO: Metodi per gestione prestiti
+                        addLoan() {
+                            if (!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
+                            const amount = parseFloat(this.newLoan.amount);
+                            // Un prestito è un'uscita di cassa (spesa immediata, credito futuro)
+                            this.currentBalance -= amount;
+
+                            this.activeLoans.unshift({
+                                id: Date.now(),
+                                debtor: this.newLoan.debtor,
+                                desc: this.newLoan.desc,
+                                originalAmount: amount,
+                                repaidAmount: 0,
+                                date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
+                                history: []
+                            });
+
+                            // Resetta form
+                            this.newLoan.debtor = '';
+                            this.newLoan.desc = '';
+                            this.newLoan.amount = null;
+
+                            this.syncData();
+                        },
+                        repayLoan(loanId) {
+                            const amount = parseFloat(this.repayInput[loanId]);
+                            if (!amount || amount <= 0) return;
+
+                            const loan = this.activeLoans.find(l => l.id === loanId);
+                            if (!loan) return;
+
+                            // Il rimborso è un'entrata di cassa
+                            this.currentBalance += amount;
+                            loan.repaidAmount += amount;
+
+                            // Aggiungi allo storico del prestito
+                            if (!loan.history) loan.history = [];
+                            computed: {
+                                totalLoanOriginal() { return 1680; },
+                                totalRepaid() { return 880; },
+                                remainingLoan() { return this.totalLoanOriginal - this.totalRepaid; },
+                                loanProgress() { return Math.round((this.totalRepaid / this.totalLoanOriginal) * 100); },
+                                forecastBalance() {
+                                    let pendingIncome = this.futureIncomes.filter(i => !i.received).reduce((acc, i) => acc + i.amount, 0);
+                                    const recurringForecast = recurringManager.calculateFutureImpact(30);
+                                    return this.currentBalance + pendingIncome + recurringForecast.netImpact - 526;
+                                },
+                                totalActiveCredits() {
+                                    return this.activeLoans.reduce((acc, l) => acc + (l.originalAmount - l.repaidAmount), 0);
+                                }
+                            },
+            async mounted() {
+                                // Setup cloud config
+                                const cloudConfig = localStorage.getItem('futura_cloud_config');
+                                if (!cloudConfig) {
+                                    this.needsSetup = true;
+                                } else {
+                                    this.setup = JSON.parse(cloudConfig);
+                                }
+
+                                // Load categories
+                                this.categories = categoryManager.getAllCategories();
+
+                                // Register service worker
+                                this.registerServiceWorker();
+
+                                // PWA install prompt
+                                this.setupPWAInstall();
+
+                                // Request notification permission dopo qualche secondo
+                                setTimeout(() => {
+                                    if (notificationManager.permission === 'default') {
+                                        this.requestNotificationPermission();
+                                    }
+                                }, 5000);
+                            },
+                            methods: {
+                async saveSetup() {
+                                    if (!this.setup.binId || !this.setup.apiKey) {
+                                        this.error = true; this.errorMsg = "Inserisci tutti i campi"; return;
+                                    }
+                                    this.setup.binId = this.setup.binId.trim();
+                                    this.setup.apiKey = this.setup.apiKey.trim();
+                                    this.loading = true;
+                                    this.error = false; // Reset error
+                                    try {
+                                        await this.loadDataFromCloud();
+                                        localStorage.setItem('futura_cloud_config', JSON.stringify(this.setup));
+                                        this.needsSetup = false;
+                                        this.authenticated = true;
+                                    } catch (e) {
+                                        this.error = true;
+                                        this.errorMsg = "CONNESSIONE FALLITA: " + e.message;
+                                    } finally {
+                                        this.loading = false;
+                                    }
+                                },
+                                resetConfig() {
+                                    localStorage.removeItem('futura_cloud_config');
+                                    location.reload();
+                                },
+                async checkPin() {
+                                    if (this.inputPin === '0000') {
+                                        this.loading = true;
+                                        this.error = false;
+                                        try {
+                                            await this.loadDataFromCloud();
+                                            this.authenticated = true;
+                                        } catch (e) {
+                                            this.error = true;
+                                            this.errorMsg = "ERRORE CLOUD: " + e.message;
+                                        } finally { this.loading = false; }
+                                    } else {
+                                        this.error = true; this.errorMsg = "PIN Errato"; this.inputPin = '';
+                                    }
+                                },
+                async loadDataFromCloud() {
+                                    const binId = this.setup.binId.trim();
+                                    const apiKey = this.setup.apiKey.trim();
+
+                                    // FETCH DATA
+                                    const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                                        method: 'GET',
+                                        headers: {
+                                            'X-Master-Key': apiKey,
+                                            'X-Bin-Meta': 'false'
+                                        }
+                                    });
+
+                                    if (!response.ok) {
+                                        if (response.status === 404) throw new Error("BIN ID NON TROVATO (Controlla l'ID)");
+                                        if (response.status === 403 || response.status === 401) throw new Error("CHIAVE ERRATA (Controlla Master Key)");
+                                        throw new Error(`Errore Server (${response.status})`);
+                                    }
+
+                                    const data = await response.json();
+
+                                    if (data.currentBalance !== undefined) this.currentBalance = data.currentBalance;
+                                    if (data.futureIncomes) this.futureIncomes = data.futureIncomes;
+                                    if (data.manualTransactions) this.manualTransactions = data.manualTransactions;
+                                    if (data.activeLoans) this.activeLoans = data.activeLoans; // NUOVO: Carica prestiti
+                                    if (data.lastSavedTime) this.lastSavedTime = data.lastSavedTime;
+                                },
+                async syncData(manual = false) {
+                                    this.isSyncing = true;
+                                    const now = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                                    this.lastSavedTime = now;
+                                    const payload = {
+                                        currentBalance: this.currentBalance,
+                                        futureIncomes: this.futureIncomes,
+                                        manualTransactions: this.manualTransactions,
+                                        activeLoans: this.activeLoans, // NUOVO: Salva prestiti
+                                        lastSavedTime: now
+                                    };
+                                    try {
+                                        const binId = this.setup.binId.trim();
+                                        const apiKey = this.setup.apiKey.trim();
+
+                                        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+                                            body: JSON.stringify(payload)
+                                        });
+                                        if (manual) {
+                                            const icon = this.$refs.syncIcon;
+                                            icon.className = "fas fa-check text-green-400";
+                                            setTimeout(() => icon.className = "fas fa-cloud-upload-alt", 1500);
+                                        }
+                                    } catch (e) { alert("Errore salvataggio: " + e.message); }
+                                    finally { this.isSyncing = false; }
+                                },
+                                formatNumber(val) { return val.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); },
+                                toggleIncome(index) {
+                                    const item = this.futureIncomes[index];
+                                    item.received = !item.received;
+                                    if (item.received) this.currentBalance += item.amount; else this.currentBalance -= item.amount;
+                                    this.syncData();
+                                },
+                                addTransaction() {
+                                    if (!this.newTrans.desc || !this.newTrans.amount) return;
+                                    const amount = parseFloat(this.newTrans.amount);
+                                    if (this.newTrans.type === 'in') this.currentBalance += amount; else this.currentBalance -= amount;
+                                    this.manualTransactions.unshift({
+                                        desc: this.newTrans.desc, amount: amount, type: this.newTrans.type,
+                                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+                                    });
+                                    this.newTrans.desc = ''; this.newTrans.amount = null;
+                                    this.syncData();
+                                },
+                                removeTransaction(index) {
+                                    const t = this.manualTransactions[index];
+                                    if (t.type === 'in') this.currentBalance -= t.amount; else this.currentBalance += t.amount;
+                                    this.manualTransactions.splice(index, 1);
+                                    this.syncData();
+                                },
+                                // NUOVO: Metodi per gestione prestiti
+                                addLoan() {
+                                    if (!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
+                                    const amount = parseFloat(this.newLoan.amount);
+                                    // Un prestito è un'uscita di cassa (spesa immediata, credito futuro)
+                                    this.currentBalance -= amount;
+
+                                    this.activeLoans.unshift({
+                                        id: Date.now(),
+                                        debtor: this.newLoan.debtor,
+                                        desc: this.newLoan.desc,
+                                        originalAmount: amount,
+                                        repaidAmount: 0,
+                                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
+                                        history: []
+                                    });
+
+                                    // Resetta form
+                                    this.newLoan.debtor = '';
+                                    this.newLoan.desc = '';
+                                    this.newLoan.amount = null;
+
+                                    this.syncData();
+                                },
+                                repayLoan(loanId) {
+                                    const amount = parseFloat(this.repayInput[loanId]);
+                                    if (!amount || amount <= 0) return;
+
+                                    const loan = this.activeLoans.find(l => l.id === loanId);
+                                    if (!loan) return;
+
+                                    // Il rimborso è un'entrata di cassa
+                                    this.currentBalance += amount;
+                                    loan.repaidAmount += amount;
+
+                                    // Aggiungi allo storico del prestito
+                                    if (!loan.history) loan.history = [];
+                                    loan.history.push({
+                                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
+                                        amount: amount
+                                    });
+
+                                    // Reset input
+                                    this.repayInput[loanId] = null;
+                                    this.syncData();
+                                },
+                // PWA METHODS
+                async registerServiceWorker() {
+                                    if ('serviceWorker' in navigator) {
+                                        try {
+                                            const registration = await navigator.serviceWorker.register('/sw.js');
+                                            console.log('[PWA] Service Worker registered:', registration.scope);
+
+                                            // Listen for updates
+                                            registration.addEventListener('updatefound', () => {
+                                                const newWorker = registration.installing;
+                                                newWorker.addEventListener('statechange', () => {
+                                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                                        console.log('[PWA] New version available, reload to update');
+                                                    }
+                                                });
+                                            });
+                                        } catch (error) {
+                                            console.error('[PWA] Service Worker registration failed:', error);
+                                        }
+                                    }
+                                },
+                                setupPWAInstall() {
+                                    window.addEventListener('beforeinstallprompt', (e) => {
+                                        e.preventDefault();
+                                        this.installEvent = e;
+                                        this.showInstallPrompt = true;
+                                        console.log('[PWA] Install prompt ready');
+                                    });
+
+                                    window.addEventListener('appinstalled', () => {
+                                        this.showInstallPrompt = false;
+                                        this.installEvent = null;
+                                        console.log('[PWA] App installed');
+                                    });
+                                },
                 async installPWA() {
-                    if (!this.installEvent) return;
+                                    if (!this.installEvent) return;
 
-                    this.installEvent.prompt();
-                    const result = await this.installEvent.userChoice;
+                                    this.installEvent.prompt();
+                                    const result = await this.installEvent.userChoice;
 
-                    if (result.outcome === 'accepted') {
-                        console.log('[PWA] User accepted install');
-                    }
+                                    if (result.outcome === 'accepted') {
+                                        console.log('[PWA] User accepted install');
+                                    }
 
-                    this.showInstallPrompt = false;
-                    this.installEvent = null;
-                },
+                                    this.showInstallPrompt = false;
+                                    this.installEvent = null;
+                                },
                 async requestNotificationPermission() {
-                    if (typeof notificationManager !== 'undefined') {
-                        const granted = await notificationManager.requestPermission();
-                        if (granted) {
-                            console.log('[Not ifications] Permission granted');
-                        }
-                    }
-                },
-                logout() {
-                    this.authenticated = false;
-                    this.inputPin = '';
-                }
-            }
-        }).mount('#app');
+                                    const granted = await notificationManager.requestPermission();
+                                    if (granted) {
+                                        console.log('[Notifications] Permission granted');
+                                    }
+                                },
+                                logout() { this.authenticated = false; this.inputPin = ''; }
+                            }
+                        }).mount('#app');
     </script>
 </body>
 

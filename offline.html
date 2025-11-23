@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - FUTURA SYNC</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+        }
+        
+        .icon {
+            font-size: 120px;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards 0.2s;
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards 0.4s;
+        }
+        
+        p {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards 0.6s;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards 0.8s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease forwards 1s;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon pulse">☁️</div>
+        <h1>Modalità Offline</h1>
+        <p>Non sei connesso a Internet, ma puoi continuare a usare l'app. I dati verranno sincronizzati automaticamente quando tornerai online.</p>
+        <button class="btn" onclick="location.reload()">Riprova Connessione</button>
+        <div class="status">
+            <strong>📱 App Installata</strong><br>
+            Quando sei offline, tutte le funzionalità continuano a funzionare grazie alla tecnologia PWA.
+        </div>
+    </div>
+    
+    <script>
+        // Auto-retry ogni 10 secondi
+        setInterval(() => {
+            if (navigator.onLine) {
+                location.reload();
+            }
+        }, 10000);
+        
+        // Listen for online event
+        window.addEventListener('online', () => {
+            location.reload();
+        });
+    </script>
+</body>
+</html>
