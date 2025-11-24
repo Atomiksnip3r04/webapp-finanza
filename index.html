@@ -283,6 +283,9 @@
                             <span class="text-xs font-mono text-slate-400" v-if="goal.targetDate">{{ new
                                 Date(goal.targetDate).toLocaleDateString() }}</span>
                         </div>
+                        <button @click="editGoal(goal)" class="absolute top-4 right-4 text-slate-600 hover:text-white transition">
+                            <i class="fas fa-pen text-xs"></i>
+                        </button>
                         <div class="flex items-end gap-2 mb-3">
                             <span class="text-2xl font-bold text-pink-400">€ {{ formatNumber(goal.currentAmount)
                                 }}</span>
@@ -369,8 +372,10 @@
                                     <span class="font-mono font-bold text-sm"
                                         :class="t.type === 'in' ? 'text-green-400' : 'text-red-400'">{{ t.type === 'in'
                                         ? '+' : '-' }}{{ formatNumber(t.amount) }}</span>
-                                    <button @click="removeTransaction(index)"
-                                        class="text-slate-600 hover:text-red-400"><i class="fas fa-times"></i></button>
+                                    <div class="flex gap-2">
+                                        <button @click="editTransaction(index)" class="text-slate-600 hover:text-blue-400"><i class="fas fa-pen"></i></button>
+                                        <button @click="removeTransaction(index)" class="text-slate-600 hover:text-red-400"><i class="fas fa-times"></i></button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -379,15 +384,16 @@
 
                 <div class="lg:col-span-8 space-y-6">
                     <div class="glass-card rounded-2xl p-6">
-                        <h2 class="text-lg font-bold text-white mb-4"><i
-                                class="fas fa-check-double text-green-400 mr-2"></i>In Arrivo (Da PDF)</h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold text-white"><i class="fas fa-check-double text-green-400 mr-2"></i>In Arrivo (Da PDF)</h2>
+                            <button @click="addFutureIncome" class="text-xs bg-green-500/20 text-green-300 px-3 py-1.5 rounded-lg hover:bg-green-500/30 transition">+ Aggiungi</button>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div v-for="(income, index) in futureIncomes" :key="index"
-                                class="relative overflow-hidden p-3 rounded-xl border transition-all cursor-pointer select-none"
-                                :class="income.received ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-800/40 border-slate-700/50'"
-                                @click="toggleIncome(index)">
-                                <div class="flex items-center justify-between relative z-10">
-                                    <div class="flex items-center gap-3">
+                                class="relative overflow-hidden p-3 rounded-xl border transition-all select-none group"
+                                :class="income.received ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-800/40 border-slate-700/50'">
+                                <div class="flex items-center justify-between relative z-10" @click="toggleIncome(index)">
+                                    <div class="flex items-center gap-3 cursor-pointer">
                                         <div class="w-5 h-5 rounded border flex items-center justify-center"
                                             :class="income.received ? 'bg-green-500 border-green-500' : 'border-slate-500'">
                                             <i v-if="income.received" class="fas fa-check text-white text-[10px]"></i>
@@ -396,9 +402,14 @@
                                             :class="income.received ? 'text-green-200/70 line-through' : 'text-slate-200'">{{
                                             income.desc }}</span>
                                     </div>
-                                    <span class="font-mono font-bold text-sm"
-                                        :class="income.received ? 'text-green-400/70' : 'text-white'">€ {{
-                                        formatNumber(income.amount) }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono font-bold text-sm"
+                                            :class="income.received ? 'text-green-400/70' : 'text-white'">€ {{
+                                            formatNumber(income.amount) }}</span>
+                                        <button @click.stop="editFutureIncome(index)" class="opacity-0 group-hover:opacity-100 transition text-slate-500 hover:text-blue-400 ml-2 p-1">
+                                            <i class="fas fa-pen text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -461,14 +472,16 @@
                                         </div>
                                     </div>
 
-                                    <div v-if="loan.repaidAmount < loan.originalAmount"
-                                        class="flex items-center gap-2 w-full md:w-auto">
-                                        <input type="number" v-model="repayInput[loan.id]" placeholder="Rimborsa..."
-                                            class="glass-input w-24 text-xs p-2 rounded-lg font-mono">
-                                        <button @click="repayLoan(loan.id)"
-                                            class="bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-100 text-xs font-bold py-2 px-3 rounded-lg transition">
-                                            <i class="fas fa-download mr-1"></i> INCASSA
-                                        </button>
+                                    <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                        <div v-if="loan.repaidAmount < loan.originalAmount" class="flex gap-2">
+                                            <input type="number" v-model="repayInput[loan.id]" placeholder="Rimborsa..."
+                                                class="glass-input w-24 text-xs p-2 rounded-lg font-mono">
+                                            <button @click="repayLoan(loan.id)"
+                                                class="bg-green-600/20 hover:bg-green-600 border border-green-600/50 text-green-100 text-xs font-bold py-2 px-3 rounded-lg transition">
+                                                <i class="fas fa-download mr-1"></i> INCASSA
+                                            </button>
+                                        </div>
+                                        <button @click="editLoan(loan)" class="ml-2 text-slate-600 hover:text-blue-400 p-2"><i class="fas fa-pen"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -481,6 +494,105 @@
                             <span class="font-mono font-bold text-red-400">- € 526</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- EDIT TRANSACTION MODAL -->
+            <div v-if="showEditTransModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-enter" @click.self="showEditTransModal = false">
+                <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
+                    <h3 class="text-lg font-bold text-white mb-4">Modifica Transazione</h3>
+                    <form @submit.prevent="saveTransactionEdit" class="space-y-3">
+                        <input type="text" v-model="editingTrans.desc" class="glass-input w-full rounded-lg p-3 text-sm" placeholder="Descrizione">
+                        <input type="number" v-model="editingTrans.amount" step="0.01" class="glass-input w-full rounded-lg p-3 text-sm font-mono" placeholder="Importo">
+                        <select v-model="editingTrans.type" class="glass-input w-full rounded-lg p-3 text-sm">
+                            <option value="in">Entrata (+)</option>
+                            <option value="out">Uscita (-)</option>
+                        </select>
+                        <input type="text" v-model="editingTrans.date" class="glass-input w-full rounded-lg p-3 text-sm" placeholder="Data">
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" @click="showEditTransModal = false" class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                            <button type="submit" class="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold">SALVA</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- EDIT GOAL MODAL -->
+            <div v-if="showEditGoalModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-enter"
+                @click.self="showEditGoalModal = false">
+                <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
+                    <h3 class="text-lg font-bold text-white mb-4">Modifica Obiettivo</h3>
+                    <form @submit.prevent="saveGoalEdit" class="space-y-3">
+                        <label class="text-xs uppercase font-bold text-slate-500">Nome</label>
+                        <input type="text" v-model="editingGoal.name" placeholder="Nome"
+                            class="glass-input w-full rounded-lg p-3 text-sm">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Target (€)</label>
+                        <input type="number" v-model="editingGoal.targetAmount" placeholder="Target"
+                            class="glass-input w-full rounded-lg p-3 text-sm font-mono">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Salvato Attualmente (€)</label>
+                        <input type="number" v-model="editingGoal.currentAmount" placeholder="Attuale"
+                            class="glass-input w-full rounded-lg p-3 text-sm font-mono">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Data Target</label>
+                        <input type="date" v-model="editingGoal.targetDate" class="glass-input w-full rounded-lg p-3 text-sm">
+
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" @click="deleteGoal" class="py-3 px-4 rounded-xl bg-red-900/50 text-red-300 text-sm font-bold"><i class="fas fa-trash"></i></button>
+                            <button type="button" @click="showEditGoalModal = false"
+                                class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                            <button type="submit"
+                                class="flex-1 py-3 rounded-xl bg-pink-600 text-white text-sm font-bold">SALVA</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- EDIT FUTURE INCOME MODAL -->
+            <div v-if="showEditIncomeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-enter" @click.self="showEditIncomeModal = false">
+                <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
+                    <h3 class="text-lg font-bold text-white mb-4">{{ editingIncome.isNew ? 'Nuova Entrata' : 'Modifica Entrata' }}</h3>
+                    <form @submit.prevent="saveFutureIncome" class="space-y-3">
+                        <input type="text" v-model="editingIncome.desc" class="glass-input w-full rounded-lg p-3 text-sm" placeholder="Descrizione">
+                        <input type="number" v-model="editingIncome.amount" step="0.01" class="glass-input w-full rounded-lg p-3 text-sm font-mono" placeholder="Importo">
+                        <div class="flex items-center gap-2 mt-2">
+                             <input type="checkbox" v-model="editingIncome.received" id="incomeReceived" class="w-4 h-4 rounded bg-slate-700 border-slate-600">
+                             <label for="incomeReceived" class="text-sm text-slate-300">Già Ricevuto</label>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" @click="deleteFutureIncome" v-if="!editingIncome.isNew" class="py-3 px-4 rounded-xl bg-red-900/50 text-red-300 text-sm font-bold"><i class="fas fa-trash"></i></button>
+                            <button type="button" @click="showEditIncomeModal = false" class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                            <button type="submit" class="flex-1 py-3 rounded-xl bg-green-600 text-white text-sm font-bold">SALVA</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- EDIT LOAN MODAL -->
+            <div v-if="showEditLoanModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-enter" @click.self="showEditLoanModal = false">
+                <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
+                    <h3 class="text-lg font-bold text-white mb-4">Modifica Credito</h3>
+                    <form @submit.prevent="saveLoanEdit" class="space-y-3">
+                        <label class="text-xs uppercase font-bold text-slate-500">Debitore</label>
+                        <input type="text" v-model="editingLoan.debtor" class="glass-input w-full rounded-lg p-3 text-sm" placeholder="Nome Debitore">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Descrizione</label>
+                        <input type="text" v-model="editingLoan.desc" class="glass-input w-full rounded-lg p-3 text-sm" placeholder="Descrizione">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Importo Originale</label>
+                        <input type="number" v-model="editingLoan.originalAmount" step="0.01" class="glass-input w-full rounded-lg p-3 text-sm font-mono">
+
+                        <label class="text-xs uppercase font-bold text-slate-500">Già Rimborsato</label>
+                        <input type="number" v-model="editingLoan.repaidAmount" step="0.01" class="glass-input w-full rounded-lg p-3 text-sm font-mono">
+
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" @click="deleteLoan" class="py-3 px-4 rounded-xl bg-red-900/50 text-red-300 text-sm font-bold"><i class="fas fa-trash"></i></button>
+                            <button type="button" @click="showEditLoanModal = false" class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                            <button type="submit" class="flex-1 py-3 rounded-xl bg-yellow-600 text-white text-sm font-bold">SALVA</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -649,14 +761,35 @@
                     savingsGoals: [],
                     showAddGoalModal: false,
                     newGoalData: { name: '', amount: null, date: '' },
-                    showHealthInfo: false
+                    showHealthInfo: false,
+
+                    // EDIT MODALS
+                    showEditTransModal: false,
+                    editingTrans: null,
+                    showEditIncomeModal: false,
+                    editingIncome: null,
+                    showEditLoanModal: false,
+                    editingLoan: null,
+                    showEditGoalModal: false,
+                    editingGoal: null
                 };
             },
             computed: {
-                totalLoanOriginal() { return 1680; },
-                totalRepaid() { return 880; },
+                dadLoans() {
+                    return this.activeLoans.filter(l => l.debtor && (l.debtor.toLowerCase().includes('papà') || l.debtor.toLowerCase().includes('papa') || l.debtor.toLowerCase().includes('padre')));
+                },
+                totalLoanOriginal() {
+                    const dadTotal = this.dadLoans.reduce((acc, l) => acc + l.originalAmount, 0);
+                    return dadTotal;
+                },
+                totalRepaid() {
+                    return this.dadLoans.reduce((acc, l) => acc + l.repaidAmount, 0);
+                },
                 remainingLoan() { return this.totalLoanOriginal - this.totalRepaid; },
-                loanProgress() { return Math.round((this.totalRepaid / this.totalLoanOriginal) * 100); },
+                loanProgress() {
+                    if (this.totalLoanOriginal === 0) return 0;
+                    return Math.round((this.totalRepaid / this.totalLoanOriginal) * 100);
+                },
                 forecastBalance() {
                     let pendingIncome = this.futureIncomes.filter(i => !i.received).reduce((acc, i) => acc + i.amount, 0);
                     const recurringForecast = typeof recurringManager !== 'undefined' ? recurringManager.calculateFutureImpact(30) : { netImpact: 0 };
@@ -864,7 +997,40 @@
                         });
                     }
                 },
+                editTransaction(index) {
+                    const t = this.manualTransactions[index];
+                    this.editingTrans = { ...t, index: index }; // Clone and store index
+                    this.showEditTransModal = true;
+                },
+                saveTransactionEdit() {
+                    const idx = this.editingTrans.index;
+                    const oldTrans = this.manualTransactions[idx];
+                    const newTrans = this.editingTrans;
+
+                    // Revert old balance effect
+                    if (oldTrans.type === 'in') this.currentBalance -= oldTrans.amount;
+                    else this.currentBalance += oldTrans.amount;
+
+                    // Apply new balance effect
+                    if (newTrans.type === 'in') this.currentBalance += parseFloat(newTrans.amount);
+                    else this.currentBalance -= parseFloat(newTrans.amount);
+
+                    // Update array
+                    this.manualTransactions[idx] = {
+                        ...oldTrans,
+                        desc: newTrans.desc,
+                        amount: parseFloat(newTrans.amount),
+                        type: newTrans.type,
+                        date: newTrans.date
+                    };
+
+                    this.showEditTransModal = false;
+                    this.editingTrans = null;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
                 removeTransaction(index) {
+                    if(!confirm('Sei sicuro di voler eliminare questa transazione?')) return;
                     const t = this.manualTransactions[index];
                     if (t.type === 'in') this.currentBalance -= t.amount;
                     else this.currentBalance += t.amount;
@@ -872,6 +1038,99 @@
                     this.syncData();
                     this.refreshAnalysis();
                 },
+
+                // FUTURE INCOME METHODS
+                addFutureIncome() {
+                    this.editingIncome = { desc: '', amount: null, received: false, isNew: true };
+                    this.showEditIncomeModal = true;
+                },
+                editFutureIncome(index) {
+                    const inc = this.futureIncomes[index];
+                    this.editingIncome = { ...inc, index: index, isNew: false };
+                    this.showEditIncomeModal = true;
+                },
+                saveFutureIncome() {
+                    const amount = parseFloat(this.editingIncome.amount);
+                    if (!this.editingIncome.desc || isNaN(amount)) return;
+
+                    if (this.editingIncome.isNew) {
+                        this.futureIncomes.push({
+                            desc: this.editingIncome.desc,
+                            amount: amount,
+                            received: this.editingIncome.received
+                        });
+                        if (this.editingIncome.received) this.currentBalance += amount;
+                    } else {
+                        const idx = this.editingIncome.index;
+                        const oldInc = this.futureIncomes[idx];
+
+                        // Handle balance change if received status or amount changed
+                        if (oldInc.received) this.currentBalance -= oldInc.amount;
+                        if (this.editingIncome.received) this.currentBalance += amount;
+
+                        this.futureIncomes[idx] = {
+                            desc: this.editingIncome.desc,
+                            amount: amount,
+                            received: this.editingIncome.received
+                        };
+                    }
+                    this.showEditIncomeModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+                deleteFutureIncome() {
+                    if(!confirm('Eliminare questa voce?')) return;
+                    const idx = this.editingIncome.index;
+                    const inc = this.futureIncomes[idx];
+                    if (inc.received) this.currentBalance -= inc.amount;
+                    this.futureIncomes.splice(idx, 1);
+                    this.showEditIncomeModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+
+                // LOAN EDIT METHODS
+                editLoan(loan) {
+                    // Clone deep enough
+                    this.editingLoan = JSON.parse(JSON.stringify(loan));
+                    this.showEditLoanModal = true;
+                },
+                saveLoanEdit() {
+                    const idx = this.activeLoans.findIndex(l => l.id === this.editingLoan.id);
+                    if (idx === -1) return;
+
+                    const oldLoan = this.activeLoans[idx];
+                    const newLoan = this.editingLoan;
+
+                    const diff = parseFloat(newLoan.originalAmount) - oldLoan.originalAmount;
+                    if (diff !== 0) {
+                        this.currentBalance -= diff;
+                    }
+
+                    // Update
+                    this.activeLoans[idx] = {
+                        ...oldLoan,
+                        debtor: newLoan.debtor,
+                        desc: newLoan.desc,
+                        originalAmount: parseFloat(newLoan.originalAmount),
+                        repaidAmount: parseFloat(newLoan.repaidAmount)
+                    };
+
+                    this.showEditLoanModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+                deleteLoan() {
+                    if(!confirm('Eliminare questo credito? Il saldo non verrà modificato automaticamente (eccetto rimborsi futuri).')) return;
+                    const idx = this.activeLoans.findIndex(l => l.id === this.editingLoan.id);
+                    if (idx !== -1) {
+                        this.activeLoans.splice(idx, 1);
+                    }
+                    this.showEditLoanModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+
                 addLoan() {
                     if (!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
                     const amount = parseFloat(this.newLoan.amount);
@@ -972,6 +1231,50 @@
                             this.refreshAnalysis();
                         }
                     }
+                },
+
+                editGoal(goal) {
+                    this.editingGoal = JSON.parse(JSON.stringify(goal));
+                    this.showEditGoalModal = true;
+                },
+                saveGoalEdit() {
+                    if (!this.editingGoal.name || this.editingGoal.targetAmount === null) return;
+
+                    const idx = this.savingsGoals.findIndex(g => g.id === this.editingGoal.id);
+                    if (idx === -1) return;
+
+                    const oldGoal = this.savingsGoals[idx];
+                    const newGoal = this.editingGoal;
+
+                    // Adjust balance based on difference in current saved amount
+                    const diff = parseFloat(newGoal.currentAmount) - oldGoal.currentAmount;
+                    if (diff !== 0) {
+                        this.currentBalance -= diff;
+                    }
+
+                    this.savingsGoals[idx] = {
+                        ...oldGoal,
+                        name: newGoal.name,
+                        targetAmount: parseFloat(newGoal.targetAmount),
+                        currentAmount: parseFloat(newGoal.currentAmount),
+                        targetDate: newGoal.targetDate
+                    };
+
+                    this.showEditGoalModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+                deleteGoal() {
+                    if(!confirm('Eliminare questo obiettivo? Il saldo risparmiato verrà restituito alla disponibilità.')) return;
+                    const idx = this.savingsGoals.findIndex(g => g.id === this.editingGoal.id);
+                    if (idx !== -1) {
+                        const amount = this.savingsGoals[idx].currentAmount;
+                        this.currentBalance += amount; // Refund to balance
+                        this.savingsGoals.splice(idx, 1);
+                    }
+                    this.showEditGoalModal = false;
+                    this.syncData();
+                    this.refreshAnalysis();
                 },
 
                 async registerServiceWorker() {
