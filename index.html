@@ -35,6 +35,9 @@
     <script src="js/budget.js"></script>
     <script src="js/recurring.js"></script>
     <script src="js/notifications.js"></script>
+    <script src="js/health-score.js"></script>
+    <script src="js/insights.js"></script>
+    <script src="js/savings-goals.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
@@ -201,6 +204,103 @@
                             class="fas fa-sign-out-alt"></i></button>
                 </div>
             </header>
+
+            <!-- NEW: HEALTH SCORE & INSIGHTS SUMMARY -->
+            <div v-if="healthScore" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Health Score Card -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest">Salute Finanziaria
+                            </h3>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <span class="text-4xl font-bold" :style="{ color: healthScore.grade.color }">{{
+                                    healthScore.totalScore }}/100</span>
+                                <span class="text-lg font-bold px-2 py-0.5 rounded bg-slate-800"
+                                    :style="{ color: healthScore.grade.color }">{{ healthScore.grade.label }}</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-800 text-2xl">
+                            {{ healthScore.grade.letter }}
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 mt-4">
+                        <div v-for="(metric, key) in healthScore.metrics" :key="key"
+                            class="flex items-center justify-between text-xs">
+                            <span class="text-slate-400 capitalize">{{ key.replace(/([A-Z])/g, ' $1').trim() }}</span>
+                            <div class="flex items-center gap-2 w-1/2">
+                                <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-500"
+                                        :class="getMetricColor(metric.status)"
+                                        :style="{ width: (metric.score / (key === 'savingRate' ? 30 : key === 'debtRatio' ? 25 : key === 'budgetAdherence' ? 20 : key === 'emergencyFund' ? 15 : 10)) * 100 + '%' }">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Insights Card -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
+                    <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest mb-4">Insights & Avvisi</h3>
+                    <div v-if="insights.length === 0" class="text-center text-slate-500 text-sm py-4">Nessun insight
+                        rilevante al momento</div>
+                    <div class="space-y-3 max-h-[180px] overflow-y-auto pr-2">
+                        <div v-for="(insight, idx) in insights.slice(0, 3)" :key="idx"
+                            class="flex gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                            <div class="text-xl">{{ insight.icon }}</div>
+                            <div>
+                                <div class="text-sm font-bold text-white">{{ insight.title }}</div>
+                                <div class="text-xs text-slate-400 leading-relaxed">{{ insight.message }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SAVINGS GOALS SECTION -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-white"><i class="fas fa-bullseye text-pink-400 mr-2"></i>Obiettivi
+                        di Risparmio</h2>
+                    <button @click="showAddGoalModal = true"
+                        class="text-xs bg-pink-500/20 text-pink-300 px-3 py-1.5 rounded-lg hover:bg-pink-500/30 transition">+
+                        Nuovo</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div v-for="goal in savingsGoals" :key="goal.id"
+                        class="glass-card p-5 rounded-2xl relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-white">{{ goal.name }}</h3>
+                            <span class="text-xs font-mono text-slate-400" v-if="goal.targetDate">{{ new
+                                Date(goal.targetDate).toLocaleDateString() }}</span>
+                        </div>
+                        <div class="flex items-end gap-2 mb-3">
+                            <span class="text-2xl font-bold text-pink-400">€ {{ formatNumber(goal.currentAmount)
+                                }}</span>
+                            <span class="text-xs text-slate-500 mb-1.5">/ € {{ formatNumber(goal.targetAmount) }}</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden mb-3">
+                            <div class="h-full bg-gradient-to-r from-pink-500 to-rose-500"
+                                :style="{ width: Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) + '%' }">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-slate-500">{{ Math.round((goal.currentAmount / goal.targetAmount)
+                                * 100) }}% completato</span>
+                            <button @click="addGoalContribution(goal)"
+                                class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded transition">Versa</button>
+                        </div>
+                    </div>
+
+                    <div v-if="savingsGoals.length === 0"
+                        class="col-span-full text-center py-8 glass-card rounded-2xl border-dashed border-slate-700">
+                        <p class="text-slate-500 text-sm">Nessun obiettivo di risparmio attivo</p>
+                    </div>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
@@ -377,6 +477,29 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ADD GOAL MODAL -->
+            <div v-if="showAddGoalModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
+                    <h3 class="text-lg font-bold text-white mb-4">Nuovo Obiettivo</h3>
+                    <form @submit.prevent="saveNewGoal" class="space-y-3">
+                        <input type="text" v-model="newGoalData.name" placeholder="Nome obiettivo (es. Vacanza)"
+                            class="glass-input w-full rounded-lg p-3 text-sm">
+                        <input type="number" v-model="newGoalData.amount" placeholder="Importo Target (€)"
+                            class="glass-input w-full rounded-lg p-3 text-sm">
+                        <input type="date" v-model="newGoalData.date" class="glass-input w-full rounded-lg p-3 text-sm">
+
+                        <div class="flex gap-2 mt-4">
+                            <button type="button" @click="showAddGoalModal = false"
+                                class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                            <button type="submit"
+                                class="flex-1 py-3 rounded-xl bg-pink-600 text-white text-sm font-bold">CREA</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -411,7 +534,14 @@
                     syncManager: null,
                     categories: [],
                     showInstallPrompt: false,
-                    installEvent: null
+                    installEvent: null,
+
+                    // NEW DATA PROPERTIES
+                    healthScore: null,
+                    insights: [],
+                    savingsGoals: [],
+                    showAddGoalModal: false,
+                    newGoalData: { name: '', amount: null, date: '' }
                 };
             },
             computed: {
@@ -531,6 +661,16 @@
                     if (data.manualTransactions) this.manualTransactions = data.manualTransactions;
                     if (data.activeLoans) this.activeLoans = data.activeLoans;
                     if (data.lastSavedTime) this.lastSavedTime = data.lastSavedTime;
+
+                    // Load Savings Goals if present
+                    if (data.savingsGoals) {
+                        this.savingsGoals = data.savingsGoals;
+                        if (typeof savingsGoalManager !== 'undefined') {
+                            savingsGoalManager.goals = this.savingsGoals;
+                        }
+                    }
+
+                    this.refreshAnalysis();
                 },
                 async syncData(manual = false) {
                     this.isSyncing = true;
@@ -541,6 +681,7 @@
                         futureIncomes: this.futureIncomes,
                         manualTransactions: this.manualTransactions,
                         activeLoans: this.activeLoans,
+                        savingsGoals: this.savingsGoals, // Include savings goals
                         lastSavedTime: now
                     };
                     try {
@@ -572,6 +713,7 @@
                     if (item.received) this.currentBalance += item.amount;
                     else this.currentBalance -= item.amount;
                     this.syncData();
+                    this.refreshAnalysis();
                 },
                 addTransaction() {
                     if (!this.newTrans.desc || !this.newTrans.amount) return;
@@ -598,6 +740,7 @@
                     this.newTrans.amount = null;
                     this.newTrans.category = 'other';
                     this.syncData();
+                    this.refreshAnalysis();
 
                     // Check budget alerts
                     if (typeof budgetManager !== 'undefined') {
@@ -619,6 +762,7 @@
                     else this.currentBalance += t.amount;
                     this.manualTransactions.splice(index, 1);
                     this.syncData();
+                    this.refreshAnalysis();
                 },
                 addLoan() {
                     if (!this.newLoan.debtor || !this.newLoan.desc || !this.newLoan.amount) return;
@@ -639,6 +783,7 @@
                     this.newLoan.desc = '';
                     this.newLoan.amount = null;
                     this.syncData();
+                    this.refreshAnalysis();
                 },
                 repayLoan(loanId) {
                     const amount = parseFloat(this.repayInput[loanId]);
@@ -658,7 +803,69 @@
 
                     this.repayInput[loanId] = null;
                     this.syncData();
+                    this.refreshAnalysis();
                 },
+
+                // NEW METHODS FOR ANALYSIS
+                refreshAnalysis() {
+                    // Update Health Score
+                    if (typeof healthScoreCalculator !== 'undefined') {
+                        this.healthScore = healthScoreCalculator.calculateScore(
+                            this.manualTransactions,
+                            this.currentBalance,
+                            [], // budgets (can be added later)
+                            this.activeLoans
+                        );
+                    }
+
+                    // Update Insights
+                    if (typeof insightsEngine !== 'undefined') {
+                        this.insights = insightsEngine.generateInsights(
+                            this.manualTransactions,
+                            this.currentBalance,
+                            [], // budgets
+                            this.activeLoans
+                        );
+                    }
+                },
+
+                getMetricColor(status) {
+                    if (status === 'excellent') return 'bg-green-500';
+                    if (status === 'good') return 'bg-teal-400';
+                    if (status === 'fair') return 'bg-yellow-400';
+                    if (status === 'poor') return 'bg-orange-400';
+                    return 'bg-red-500';
+                },
+
+                saveNewGoal() {
+                    if (!this.newGoalData.name || !this.newGoalData.amount) return;
+
+                    if (typeof savingsGoalManager !== 'undefined') {
+                        const goal = savingsGoalManager.createGoal(
+                            this.newGoalData.name,
+                            this.newGoalData.amount,
+                            this.newGoalData.date
+                        );
+                        this.savingsGoals = savingsGoalManager.getAllGoals();
+                        this.syncData();
+                    }
+
+                    this.showAddGoalModal = false;
+                    this.newGoalData = { name: '', amount: null, date: '' };
+                },
+
+                addGoalContribution(goal) {
+                    const amount = prompt(`Quanto vuoi versare per ${goal.name}?`);
+                    if (amount && !isNaN(amount)) {
+                        if (typeof savingsGoalManager !== 'undefined') {
+                            savingsGoalManager.addContribution(goal.id, parseFloat(amount));
+                            this.currentBalance -= parseFloat(amount); // Deduct from balance
+                            this.syncData();
+                            this.refreshAnalysis();
+                        }
+                    }
+                },
+
                 async registerServiceWorker() {
                     if ('serviceWorker' in navigator) {
                         try {
