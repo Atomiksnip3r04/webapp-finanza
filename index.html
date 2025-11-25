@@ -312,12 +312,22 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
-                    <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest mb-2">Disponibilità</h3>
+                <!-- DISPONIBILITÀ - MODIFICABILE -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group cursor-pointer" @click="editBalance">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest">Disponibilità</h3>
+                        <i class="fas fa-edit text-slate-600 group-hover:text-indigo-400 transition text-xs"></i>
+                    </div>
                     <span class="text-4xl font-bold text-white">€ {{ formatNumber(currentBalance) }}</span>
+                    <div class="text-xs text-slate-500 mt-2">Click per modificare</div>
                 </div>
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
-                    <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest mb-2">Credito Papà</h3>
+                
+                <!-- CREDITO PAPÀ - MODIFICABILE -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group cursor-pointer" @click="editPapaLoan">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest">Credito Papà</h3>
+                        <i class="fas fa-edit text-slate-600 group-hover:text-purple-400 transition text-xs"></i>
+                    </div>
                     <div class="flex items-end gap-2">
                         <span class="text-4xl font-bold text-white">€ {{ formatNumber(remainingLoan) }}</span>
                         <span class="mb-1.5 text-sm text-slate-500">/ {{ formatNumber(totalLoanOriginal) }}</span>
@@ -326,10 +336,51 @@
                         <div class="h-full bg-gradient-to-r from-purple-500 to-fuchsia-500"
                             :style="{ width: loanProgress + '%' }"></div>
                     </div>
+                    <div class="text-xs text-slate-500 mt-2">Click per modificare</div>
                 </div>
+                
+                <!-- PREVISIONE -->
                 <div class="glass-card rounded-2xl p-6 relative overflow-hidden border-indigo-500/30">
                     <h3 class="text-indigo-300 font-medium text-xs uppercase tracking-widest mb-2">Prev. Feb 2026</h3>
                     <span class="text-4xl font-bold text-indigo-50">€ {{ formatNumber(forecastBalance) }}</span>
+                    <div class="text-xs text-slate-500 mt-2">
+                        <span v-if="forecastBalance > currentBalance" class="text-green-400">+{{ formatNumber(forecastBalance - currentBalance) }} previsti</span>
+                        <span v-else class="text-red-400">{{ formatNumber(forecastBalance - currentBalance) }} previsti</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUICK STATS & TOOLS -->
+            <div class="glass-card rounded-2xl p-4 mb-8">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap gap-4">
+                        <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+                            <div class="text-xs text-slate-500">Spese Mese</div>
+                            <div class="text-lg font-bold text-red-400">-€ {{ formatNumber(getMonthlyExpenses()) }}</div>
+                        </div>
+                        <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+                            <div class="text-xs text-slate-500">Entrate Mese</div>
+                            <div class="text-lg font-bold text-green-400">+€ {{ formatNumber(getMonthlyIncome()) }}</div>
+                        </div>
+                        <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+                            <div class="text-xs text-slate-500">Bilancio Mese</div>
+                            <div class="text-lg font-bold" :class="getMonthlyIncome() - getMonthlyExpenses() >= 0 ? 'text-green-400' : 'text-red-400'">
+                                {{ getMonthlyIncome() - getMonthlyExpenses() >= 0 ? '+' : '' }}€ {{ formatNumber(getMonthlyIncome() - getMonthlyExpenses()) }}
+                            </div>
+                        </div>
+                        <div class="text-center px-4 py-2 bg-slate-800/50 rounded-lg">
+                            <div class="text-xs text-slate-500">Transazioni</div>
+                            <div class="text-lg font-bold text-slate-300">{{ manualTransactions.length }}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="exportData" class="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg transition" title="Esporta Backup">
+                            <i class="fas fa-download mr-1"></i> Backup
+                        </button>
+                        <button @click="resetAllData" class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-300 px-3 py-2 rounded-lg transition" title="Reset Dati">
+                            <i class="fas fa-trash mr-1"></i> Reset
+                        </button>
+                    </div>
                 </div>
             </div>
 
