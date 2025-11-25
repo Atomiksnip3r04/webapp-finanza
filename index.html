@@ -311,9 +311,44 @@
                 </div>
             </div>
 
+            <!-- SPESE RATEIZZATE -->
+            <div class="mb-8" v-if="installments.length > 0 || true">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-white"><i class="fas fa-calendar-alt text-orange-400 mr-2"></i>Spese Rateizzate</h2>
+                    <button @click="showAddInstallmentModal = true"
+                        class="text-xs bg-orange-500/20 text-orange-300 px-3 py-1.5 rounded-lg hover:bg-orange-500/30 transition">+ Nuova Rata</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="inst in installments" :key="inst.id" class="glass-card p-4 rounded-2xl relative group">
+                        <button @click="editInstallment(inst)" class="absolute top-3 right-3 text-slate-600 hover:text-white transition opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-pen text-xs"></i>
+                        </button>
+                        <h3 class="font-bold text-white mb-1">{{ inst.name }}</h3>
+                        <div class="text-xs text-slate-400 mb-2">{{ inst.paidRates }}/{{ inst.numRates }} rate pagate</div>
+                        <div class="flex items-end gap-2 mb-2">
+                            <span class="text-xl font-bold text-orange-400">€ {{ formatNumber(inst.rateAmount) }}</span>
+                            <span class="text-xs text-slate-500 mb-0.5">/rata</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mb-2">
+                            <div class="h-full bg-gradient-to-r from-orange-500 to-amber-500"
+                                :style="{ width: (inst.paidRates / inst.numRates) * 100 + '%' }"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500">Giorno {{ inst.dayOfMonth }} del mese</span>
+                            <button @click="payInstallmentRate(inst)" v-if="inst.paidRates < inst.numRates"
+                                class="bg-orange-600/20 hover:bg-orange-600 text-orange-200 px-2 py-1 rounded transition">Paga Rata</button>
+                            <span v-else class="text-green-400">✓ Completato</span>
+                        </div>
+                    </div>
+                    <div v-if="installments.length === 0" class="col-span-full text-center py-6 glass-card rounded-2xl border-dashed border-slate-700">
+                        <p class="text-slate-500 text-sm">Nessuna spesa rateizzata attiva</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- DISPONIBILITÀ - MODIFICABILE -->
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group cursor-pointer" @click="editBalance">
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group cursor-pointer" @click="showBalanceEditModal = true">
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-slate-400 font-medium text-xs uppercase tracking-widest">Disponibilità</h3>
                         <i class="fas fa-edit text-slate-600 group-hover:text-indigo-400 transition text-xs"></i>
@@ -770,6 +805,156 @@
                 </div>
             </div>
 
+            <!-- MODAL MODIFICA SALDO -->
+            <div v-show="showBalanceEditModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showBalanceEditModal = false">
+                <div class="min-h-screen flex items-center justify-center">
+                    <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-white"><i class="fas fa-wallet text-indigo-400 mr-2"></i>Modifica Saldo</h3>
+                            <button @click="showBalanceEditModal = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
+                        </div>
+                        <div class="mb-4 p-3 bg-slate-800/50 rounded-lg">
+                            <div class="text-xs text-slate-400">Saldo attuale</div>
+                            <div class="text-2xl font-bold text-white">€ {{ formatNumber(currentBalance) }}</div>
+                        </div>
+                        <form @submit.prevent="saveBalanceEdit" class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900/50 rounded-xl">
+                                <button type="button" @click="newBalanceEdit.type = 'add'"
+                                    class="py-2 rounded-lg text-sm font-bold transition-all"
+                                    :class="newBalanceEdit.type === 'add' ? 'bg-green-600 text-white' : 'text-slate-400'">+ Aggiungi</button>
+                                <button type="button" @click="newBalanceEdit.type = 'subtract'"
+                                    class="py-2 rounded-lg text-sm font-bold transition-all"
+                                    :class="newBalanceEdit.type === 'subtract' ? 'bg-red-600 text-white' : 'text-slate-400'">- Sottrai</button>
+                            </div>
+                            <input type="number" v-model.number="newBalanceEdit.amount" placeholder="Importo (€)" step="0.01"
+                                class="glass-input w-full rounded-lg p-3 text-sm">
+                            <input type="text" v-model="newBalanceEdit.description" placeholder="Descrizione (es. Stipendio, Regalo, ecc.)"
+                                class="glass-input w-full rounded-lg p-3 text-sm">
+                            <div class="flex gap-2 mt-4">
+                                <button type="button" @click="showBalanceEditModal = false"
+                                    class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                                <button type="submit" :disabled="!newBalanceEdit.amount || !newBalanceEdit.description"
+                                    class="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50">APPLICA</button>
+                            </div>
+                        </form>
+                        <!-- Storico modifiche saldo -->
+                        <div v-if="balanceHistory.length > 0" class="mt-6 pt-4 border-t border-slate-700">
+                            <h4 class="text-sm font-bold text-slate-400 mb-3">Storico Modifiche</h4>
+                            <div class="max-h-40 overflow-y-auto space-y-2">
+                                <div v-for="(entry, idx) in balanceHistory.slice().reverse()" :key="idx"
+                                    class="flex justify-between items-center p-2 bg-slate-800/40 rounded-lg text-xs">
+                                    <div>
+                                        <div class="text-slate-200">{{ entry.description }}</div>
+                                        <div class="text-slate-500">{{ entry.date }}</div>
+                                    </div>
+                                    <span :class="entry.type === 'add' ? 'text-green-400' : 'text-red-400'" class="font-mono font-bold">
+                                        {{ entry.type === 'add' ? '+' : '-' }}€ {{ formatNumber(entry.amount) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL NUOVA SPESA RATEIZZATA -->
+            <div v-show="showAddInstallmentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showAddInstallmentModal = false">
+                <div class="min-h-screen flex items-center justify-center">
+                    <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-white"><i class="fas fa-calendar-alt text-orange-400 mr-2"></i>Nuova Spesa Rateizzata</h3>
+                            <button @click="showAddInstallmentModal = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
+                        </div>
+                        <form @submit.prevent="saveNewInstallment" class="space-y-3">
+                            <input type="text" v-model="newInstallment.name" placeholder="Nome (es. iPhone, Divano)"
+                                class="glass-input w-full rounded-lg p-3 text-sm">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-slate-500">Importo Totale (€)</label>
+                                    <input type="number" v-model.number="newInstallment.totalAmount" step="0.01"
+                                        class="glass-input w-full rounded-lg p-3 text-sm" @input="calcRateAmount">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500">Numero Rate</label>
+                                    <input type="number" v-model.number="newInstallment.numRates" min="1"
+                                        class="glass-input w-full rounded-lg p-3 text-sm" @input="calcRateAmount">
+                                </div>
+                            </div>
+                            <div class="p-3 bg-slate-800/50 rounded-lg text-center">
+                                <div class="text-xs text-slate-400">Importo per rata</div>
+                                <div class="text-xl font-bold text-orange-400">€ {{ formatNumber(newInstallment.rateAmount || 0) }}</div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-slate-500">Giorno del mese</label>
+                                    <input type="number" v-model.number="newInstallment.dayOfMonth" min="1" max="31"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500">Notifica giorni prima</label>
+                                    <input type="number" v-model.number="newInstallment.notifyDaysBefore" min="0" max="7"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button type="button" @click="showAddInstallmentModal = false"
+                                    class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                                <button type="submit" :disabled="!newInstallment.name || !newInstallment.totalAmount || !newInstallment.numRates"
+                                    class="flex-1 py-3 rounded-xl bg-orange-600 text-white text-sm font-bold disabled:opacity-50">CREA</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL MODIFICA SPESA RATEIZZATA -->
+            <div v-show="showEditInstallmentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showEditInstallmentModal = false">
+                <div class="min-h-screen flex items-center justify-center">
+                    <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop v-if="editingInstallment">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-white"><i class="fas fa-edit text-orange-400 mr-2"></i>Modifica Rata</h3>
+                            <button @click="showEditInstallmentModal = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
+                        </div>
+                        <form @submit.prevent="saveInstallmentEdit" class="space-y-3">
+                            <input type="text" v-model="editingInstallment.name" placeholder="Nome"
+                                class="glass-input w-full rounded-lg p-3 text-sm">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-slate-500">Importo per rata (€)</label>
+                                    <input type="number" v-model.number="editingInstallment.rateAmount" step="0.01"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500">Rate pagate</label>
+                                    <input type="number" v-model.number="editingInstallment.paidRates" min="0" :max="editingInstallment.numRates"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs text-slate-500">Giorno del mese</label>
+                                    <input type="number" v-model.number="editingInstallment.dayOfMonth" min="1" max="31"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-500">Notifica giorni prima</label>
+                                    <input type="number" v-model.number="editingInstallment.notifyDaysBefore" min="0" max="7"
+                                        class="glass-input w-full rounded-lg p-3 text-sm">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button type="button" @click="deleteInstallment(editingInstallment.id)"
+                                    class="py-3 px-4 rounded-xl bg-red-600/20 text-red-400 text-sm font-bold">ELIMINA</button>
+                                <button type="button" @click="showEditInstallmentModal = false"
+                                    class="flex-1 py-3 rounded-xl bg-slate-700 text-slate-300 text-sm font-bold">ANNULLA</button>
+                                <button type="submit"
+                                    class="flex-1 py-3 rounded-xl bg-orange-600 text-white text-sm font-bold">SALVA</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -825,7 +1010,28 @@
                     showEditLoanModal: false,
                     editingLoan: null,
                     showEditGoalModal: false,
-                    editingGoal: null
+                    editingGoal: null,
+
+                    // STORICO MODIFICHE SALDO
+                    balanceHistory: [],
+                    showBalanceEditModal: false,
+                    newBalanceEdit: { amount: null, description: '', type: 'add' },
+
+                    // SPESE RATEIZZATE
+                    installments: [],
+                    showAddInstallmentModal: false,
+                    showEditInstallmentModal: false,
+                    editingInstallment: null,
+                    newInstallment: { 
+                        name: '', 
+                        totalAmount: null, 
+                        numRates: null, 
+                        rateAmount: null,
+                        startDate: '',
+                        dayOfMonth: 1,
+                        paidRates: 0,
+                        notifyDaysBefore: 1
+                    }
                 };
             },
             computed: {
