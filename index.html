@@ -136,7 +136,7 @@
                     <div>
                         <label class="text-xs text-slate-500 uppercase font-bold">X-Master-Key</label>
                         <input type="password" v-model="setup.apiKey" placeholder="es. $2a$..."
-                            class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
+                            class="glass-input w-full rounded-lg p-3 mt-1 text-sm" autocomplete="current-password">
                     </div>
                     <button type="submit"
                         class="w-full btn-primary text-white font-bold py-3 rounded-xl mt-4 transition hover:opacity-90">
@@ -164,7 +164,7 @@
 
                 <form @submit.prevent="checkPin" class="relative mt-8">
                     <input type="password" v-model="inputPin" placeholder="PIN (0000)"
-                        class="glass-input w-full text-center text-xl rounded-xl p-4 placeholder-slate-600 focus:border-indigo-500">
+                        class="glass-input w-full text-center text-xl rounded-xl p-4 placeholder-slate-600 focus:border-indigo-500" autocomplete="current-password">
 
                     <button type="submit"
                         class="w-full mt-4 btn-primary text-white font-bold py-4 rounded-xl transition transform active:scale-95">
@@ -807,7 +807,7 @@
             </div>
 
             <!-- MODAL MODIFICA SALDO -->
-            <div v-show="showBalanceEditModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showBalanceEditModal = false">
+            <div v-if="showBalanceEditModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showBalanceEditModal = false">
                 <div class="min-h-screen flex items-center justify-center">
                     <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
                         <div class="flex justify-between items-center mb-4">
@@ -859,7 +859,7 @@
             </div>
 
             <!-- MODAL NUOVA SPESA RATEIZZATA -->
-            <div v-show="showAddInstallmentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showAddInstallmentModal = false">
+            <div v-if="showAddInstallmentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showAddInstallmentModal = false">
                 <div class="min-h-screen flex items-center justify-center">
                     <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
                         <div class="flex justify-between items-center mb-4">
@@ -909,7 +909,7 @@
             </div>
 
             <!-- MODAL MODIFICA SPESA RATEIZZATA -->
-            <div v-show="showEditInstallmentModal && editingInstallment" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showEditInstallmentModal = false">
+            <div v-if="showEditInstallmentModal && editingInstallment" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showEditInstallmentModal = false">
                 <div class="min-h-screen flex items-center justify-center">
                     <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
                         <div class="flex justify-between items-center mb-4">
