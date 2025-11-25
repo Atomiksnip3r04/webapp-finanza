@@ -14,6 +14,7 @@
 
     <!-- PWA META TAGS -->
     <meta name="theme-color" content="#6366f1">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FUTURA SYNC">
@@ -908,9 +909,9 @@
             </div>
 
             <!-- MODAL MODIFICA SPESA RATEIZZATA -->
-            <div v-show="showEditInstallmentModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showEditInstallmentModal = false">
+            <div v-show="showEditInstallmentModal && editingInstallment" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 overflow-y-auto" @click="showEditInstallmentModal = false">
                 <div class="min-h-screen flex items-center justify-center">
-                    <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop v-if="editingInstallment">
+                    <div class="glass-card max-w-md w-full rounded-2xl p-6" @click.stop>
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-bold text-white"><i class="fas fa-edit text-orange-400 mr-2"></i>Modifica Rata</h3>
                             <button @click="showEditInstallmentModal = false" class="text-slate-400 hover:text-white text-xl">&times;</button>
@@ -958,7 +959,7 @@
         </div>
     </div>
 
-    <script>
+    <script></script>
         const { createApp } = Vue;
 
         createApp({
@@ -1212,6 +1213,18 @@
                         this.papaLoanData = data.papaLoanData;
                     }
 
+                    // Load Balance History if present
+                    if (data.balanceHistory && Array.isArray(data.balanceHistory)) {
+                        this.balanceHistory = data.balanceHistory;
+                    }
+
+                    // Load Installments if present
+                    if (data.installments && Array.isArray(data.installments)) {
+                        this.installments = data.installments;
+                        // Controlla notifiche rate in scadenza
+                        this.$nextTick(() => this.scheduleInstallmentNotifications());
+                    }
+
                     this.refreshAnalysis();
                 },
                 async syncData(manual = false) {
@@ -1225,6 +1238,8 @@
                         activeLoans: this.activeLoans,
                         savingsGoals: this.savingsGoals,
                         papaLoanData: this.papaLoanData,
+                        balanceHistory: this.balanceHistory,
+                        installments: this.installments,
                         lastSavedTime: now
                     };
                     try {
@@ -1638,14 +1653,134 @@
                     this.inputPin = '';
                 },
 
-                // METODI MODIFICA MANUALE
-                editBalance() {
-                    const newBalance = prompt('Modifica Disponibilità (€):', this.currentBalance);
-                    if (newBalance !== null && !isNaN(parseFloat(newBalance))) {
-                        this.currentBalance = parseFloat(newBalance);
+                // METODI MODIFICA SALDO CON STORICO
+                saveBalanceEdit() {
+                    if (!this.newBalanceEdit.amount || !this.newBalanceEdit.description) return;
+                    
+                    const amount = parseFloat(this.newBalanceEdit.amount);
+                    const entry = {
+                        id: Date.now(),
+                        amount: amount,
+                        description: this.newBalanceEdit.description,
+                        type: this.newBalanceEdit.type,
+                        date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        balanceBefore: this.currentBalance
+                    };
+                    
+                    if (this.newBalanceEdit.type === 'add') {
+                        this.currentBalance += amount;
+                    } else {
+                        this.currentBalance -= amount;
+                    }
+                    entry.balanceAfter = this.currentBalance;
+                    
+                    this.balanceHistory.push(entry);
+                    this.showBalanceEditModal = false;
+                    this.newBalanceEdit = { amount: null, description: '', type: 'add' };
+                    this.syncData();
+                    this.refreshAnalysis();
+                },
+
+                // METODI SPESE RATEIZZATE
+                calcRateAmount() {
+                    if (this.newInstallment.totalAmount && this.newInstallment.numRates) {
+                        this.newInstallment.rateAmount = Math.round((this.newInstallment.totalAmount / this.newInstallment.numRates) * 100) / 100;
+                    }
+                },
+
+                saveNewInstallment() {
+                    if (!this.newInstallment.name || !this.newInstallment.totalAmount || !this.newInstallment.numRates) return;
+                    
+                    const inst = {
+                        id: Date.now(),
+                        name: this.newInstallment.name,
+                        totalAmount: this.newInstallment.totalAmount,
+                        numRates: this.newInstallment.numRates,
+                        rateAmount: this.newInstallment.rateAmount || (this.newInstallment.totalAmount / this.newInstallment.numRates),
+                        dayOfMonth: this.newInstallment.dayOfMonth || 1,
+                        paidRates: 0,
+                        notifyDaysBefore: this.newInstallment.notifyDaysBefore || 1,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    this.installments.push(inst);
+                    this.showAddInstallmentModal = false;
+                    this.newInstallment = { name: '', totalAmount: null, numRates: null, rateAmount: null, startDate: '', dayOfMonth: 1, paidRates: 0, notifyDaysBefore: 1 };
+                    this.syncData();
+                    this.scheduleInstallmentNotifications();
+                },
+
+                editInstallment(inst) {
+                    this.editingInstallment = { ...inst };
+                    this.showEditInstallmentModal = true;
+                },
+
+                saveInstallmentEdit() {
+                    const idx = this.installments.findIndex(i => i.id === this.editingInstallment.id);
+                    if (idx !== -1) {
+                        this.installments[idx] = { ...this.editingInstallment };
+                    }
+                    this.showEditInstallmentModal = false;
+                    this.editingInstallment = null;
+                    this.syncData();
+                    this.scheduleInstallmentNotifications();
+                },
+
+                deleteInstallment(id) {
+                    if (confirm('Sei sicuro di voler eliminare questa spesa rateizzata?')) {
+                        this.installments = this.installments.filter(i => i.id !== id);
+                        this.showEditInstallmentModal = false;
+                        this.editingInstallment = null;
+                        this.syncData();
+                    }
+                },
+
+                payInstallmentRate(inst) {
+                    if (inst.paidRates < inst.numRates) {
+                        inst.paidRates++;
+                        this.currentBalance -= inst.rateAmount;
+                        
+                        // Aggiungi allo storico modifiche saldo
+                        this.balanceHistory.push({
+                            id: Date.now(),
+                            amount: inst.rateAmount,
+                            description: `Rata ${inst.paidRates}/${inst.numRates} - ${inst.name}`,
+                            type: 'subtract',
+                            date: new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }),
+                            balanceBefore: this.currentBalance + inst.rateAmount,
+                            balanceAfter: this.currentBalance
+                        });
+                        
                         this.syncData();
                         this.refreshAnalysis();
                     }
+                },
+
+                scheduleInstallmentNotifications() {
+                    // Controlla se ci sono rate in scadenza
+                    const today = new Date();
+                    const currentDay = today.getDate();
+                    
+                    this.installments.forEach(inst => {
+                        if (inst.paidRates >= inst.numRates) return; // Già completato
+                        
+                        const daysUntilDue = inst.dayOfMonth - currentDay;
+                        
+                        if (daysUntilDue >= 0 && daysUntilDue <= inst.notifyDaysBefore) {
+                            if (typeof notificationManager !== 'undefined') {
+                                notificationManager.notify(
+                                    `Rata in scadenza: ${inst.name}`,
+                                    `La rata di €${inst.rateAmount} scade ${daysUntilDue === 0 ? 'oggi' : `tra ${daysUntilDue} giorni`}`,
+                                    'warning'
+                                );
+                            }
+                        }
+                    });
+                },
+
+                // METODO LEGACY (mantenuto per compatibilità)
+                editBalance() {
+                    this.showBalanceEditModal = true;
                 },
 
                 editPapaLoan() {

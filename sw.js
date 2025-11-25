@@ -69,6 +69,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Ignora richieste da estensioni browser
+  if (url.protocol === 'chrome-extension:' || url.protocol === 'moz-extension:') {
+    return;
+  }
+
   // Ignora richieste non-GET
   if (request.method !== 'GET') {
     return;
