@@ -131,7 +131,7 @@
                     <div>
                         <label class="text-xs text-slate-500 uppercase font-bold">Bin ID</label>
                         <input type="text" v-model="setup.binId" placeholder="es. 673b..."
-                            class="glass-input w-full rounded-lg p-3 mt-1 text-sm">
+                            class="glass-input w-full rounded-lg p-3 mt-1 text-sm" autocomplete="username">
                     </div>
                     <div>
                         <label class="text-xs text-slate-500 uppercase font-bold">X-Master-Key</label>
@@ -584,6 +584,129 @@
                 </div>
             </div>
 
+            <!-- SEZIONE GRAFICI -->
+            <div class="mt-8 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">
+                        <i class="fas fa-chart-area text-indigo-400 mr-2"></i>Analisi Finanziaria
+                    </h2>
+                    <div class="flex gap-2">
+                        <button @click="chartPeriod = '7d'" 
+                            :class="chartPeriod === '7d' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition">7G</button>
+                        <button @click="chartPeriod = '30d'" 
+                            :class="chartPeriod === '30d' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition">30G</button>
+                        <button @click="chartPeriod = 'all'" 
+                            :class="chartPeriod === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Tutto</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Grafico Entrate vs Uscite -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-exchange-alt text-emerald-400 mr-2"></i>Entrate vs Uscite
+                        </h3>
+                        <div class="h-64">
+                            <canvas ref="chartIncomeExpense"></canvas>
+                        </div>
+                        <div class="flex justify-center gap-6 mt-4 text-xs">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                                <span class="text-slate-400">Entrate: <span class="text-emerald-400 font-bold">€ {{ formatNumber(chartData.totalIncome) }}</span></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                                <span class="text-slate-400">Uscite: <span class="text-rose-400 font-bold">€ {{ formatNumber(chartData.totalExpense) }}</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grafico Distribuzione Spese per Categoria -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-pie-chart text-purple-400 mr-2"></i>Distribuzione Spese
+                        </h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas ref="chartCategories"></canvas>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-4">
+                            <div v-for="(cat, idx) in chartData.topCategories" :key="idx" class="flex items-center gap-2 text-xs">
+                                <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: cat.color }"></div>
+                                <span class="text-slate-400 truncate">{{ cat.name }}: <span class="text-white font-mono">{{ cat.percentage }}%</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grafico Andamento Saldo -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-chart-line text-cyan-400 mr-2"></i>Andamento Saldo
+                        </h3>
+                        <div class="h-64">
+                            <canvas ref="chartBalance"></canvas>
+                        </div>
+                        <div class="flex justify-between mt-4 text-xs text-slate-500">
+                            <span>Min: <span class="text-red-400 font-mono">€ {{ formatNumber(chartData.minBalance) }}</span></span>
+                            <span>Media: <span class="text-yellow-400 font-mono">€ {{ formatNumber(chartData.avgBalance) }}</span></span>
+                            <span>Max: <span class="text-green-400 font-mono">€ {{ formatNumber(chartData.maxBalance) }}</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Grafico Salute Finanziaria Radar -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-heartbeat text-pink-400 mr-2"></i>Radar Salute Finanziaria
+                        </h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas ref="chartHealthRadar"></canvas>
+                        </div>
+                        <div class="text-center mt-4">
+                            <span class="text-2xl font-bold" :style="{ color: healthScore?.grade?.color || '#6366f1' }">
+                                {{ healthScore?.totalScore || 0 }}/100
+                            </span>
+                            <span class="text-xs text-slate-500 ml-2">Punteggio Complessivo</span>
+                        </div>
+                    </div>
+
+                    <!-- Grafico Trend Mensile -->
+                    <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-calendar-alt text-amber-400 mr-2"></i>Trend Mensile (Ultimi 6 Mesi)
+                        </h3>
+                        <div class="h-72">
+                            <canvas ref="chartMonthlyTrend"></canvas>
+                        </div>
+                        <div class="flex justify-center gap-8 mt-4 text-xs">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-2 rounded bg-gradient-to-r from-emerald-500 to-emerald-400"></div>
+                                <span class="text-slate-400">Entrate</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-2 rounded bg-gradient-to-r from-rose-500 to-rose-400"></div>
+                                <span class="text-slate-400">Uscite</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-2 rounded bg-gradient-to-r from-indigo-500 to-indigo-400"></div>
+                                <span class="text-slate-400">Risparmio</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grafico Obiettivi Progress -->
+                    <div v-if="savingsGoals.length > 0" class="glass-card rounded-2xl p-5 lg:col-span-2">
+                        <h3 class="text-sm font-bold text-slate-300 mb-4">
+                            <i class="fas fa-bullseye text-pink-400 mr-2"></i>Progresso Obiettivi di Risparmio
+                        </h3>
+                        <div class="h-48">
+                            <canvas ref="chartGoalsProgress"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- EDIT TRANSACTION MODAL -->
             <div v-if="showEditTransModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-enter" @click.self="showEditTransModal = false">
                 <div class="glass-card max-w-sm w-full p-6 rounded-2xl animate-enter">
@@ -956,7 +1079,7 @@
         </div>
     </div>
 
-    <script>
+    <script></script>
         const { createApp } = Vue;
 
         createApp({
@@ -1029,8 +1152,25 @@
                         dayOfMonth: 1,
                         paidRates: 0,
                         notifyDaysBefore: 1
-                    }
+                    },
+
+                    // GRAFICI
+                    chartPeriod: '30d',
+                    chartData: {
+                        totalIncome: 0,
+                        totalExpense: 0,
+                        topCategories: [],
+                        minBalance: 0,
+                        maxBalance: 0,
+                        avgBalance: 0
+                    },
+                    charts: {}
                 };
+            },
+            watch: {
+                chartPeriod() {
+                    this.updateCharts();
+                }
             },
             computed: {
                 dadLoans() {
@@ -1508,6 +1648,388 @@
                             this.activeLoans
                         );
                     }
+
+                    // Update Charts
+                    this.updateCharts();
+                },
+
+                // CHART METHODS
+                updateCharts() {
+                    this.calculateChartData();
+                    this.$nextTick(() => {
+                        this.renderIncomeExpenseChart();
+                        this.renderCategoriesChart();
+                        this.renderBalanceChart();
+                        this.renderHealthRadarChart();
+                        this.renderMonthlyTrendChart();
+                        this.renderGoalsProgressChart();
+                    });
+                },
+
+                calculateChartData() {
+                    const now = new Date();
+                    let filteredTransactions = [...this.manualTransactions];
+                    
+                    // Filter by period
+                    if (this.chartPeriod === '7d') {
+                        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        filteredTransactions = filteredTransactions.filter(t => new Date(t.timestamp || t.date) >= weekAgo);
+                    } else if (this.chartPeriod === '30d') {
+                        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        filteredTransactions = filteredTransactions.filter(t => new Date(t.timestamp || t.date) >= monthAgo);
+                    }
+
+                    // Calculate totals
+                    this.chartData.totalIncome = filteredTransactions
+                        .filter(t => t.type === 'in')
+                        .reduce((sum, t) => sum + t.amount, 0);
+                    
+                    this.chartData.totalExpense = filteredTransactions
+                        .filter(t => t.type === 'out')
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    // Calculate categories
+                    const categoryTotals = {};
+                    filteredTransactions.filter(t => t.type === 'out').forEach(t => {
+                        const cat = t.category || 'Altro';
+                        categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
+                    });
+
+                    const categoryColors = {
+                        'food': '#22c55e', 'transport': '#3b82f6', 'entertainment': '#a855f7',
+                        'shopping': '#f59e0b', 'bills': '#ef4444', 'health': '#ec4899',
+                        'education': '#06b6d4', 'other': '#6b7280', 'Altro': '#6b7280'
+                    };
+
+                    const total = Object.values(categoryTotals).reduce((a, b) => a + b, 0) || 1;
+                    this.chartData.topCategories = Object.entries(categoryTotals)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 6)
+                        .map(([name, amount]) => ({
+                            name: this.getCategoryLabel(name),
+                            amount,
+                            percentage: Math.round((amount / total) * 100),
+                            color: categoryColors[name] || '#6b7280'
+                        }));
+
+                    // Calculate balance stats
+                    const balances = [this.currentBalance];
+                    let runningBalance = this.currentBalance;
+                    [...filteredTransactions].reverse().forEach(t => {
+                        runningBalance += t.type === 'out' ? t.amount : -t.amount;
+                        balances.push(runningBalance);
+                    });
+                    
+                    this.chartData.minBalance = Math.min(...balances);
+                    this.chartData.maxBalance = Math.max(...balances);
+                    this.chartData.avgBalance = balances.reduce((a, b) => a + b, 0) / balances.length;
+                },
+
+                getCategoryLabel(cat) {
+                    const labels = {
+                        'food': 'Cibo', 'transport': 'Trasporti', 'entertainment': 'Svago',
+                        'shopping': 'Shopping', 'bills': 'Bollette', 'health': 'Salute',
+                        'education': 'Istruzione', 'other': 'Altro', 'Altro': 'Altro'
+                    };
+                    return labels[cat] || cat;
+                },
+
+                renderIncomeExpenseChart() {
+                    const ctx = this.$refs.chartIncomeExpense;
+                    if (!ctx) return;
+
+                    if (this.charts.incomeExpense) this.charts.incomeExpense.destroy();
+
+                    this.charts.incomeExpense = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Entrate', 'Uscite'],
+                            datasets: [{
+                                data: [this.chartData.totalIncome, this.chartData.totalExpense],
+                                backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(244, 63, 94, 0.8)'],
+                                borderColor: ['#10b981', '#f43f5e'],
+                                borderWidth: 2,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { 
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#94a3b8', callback: v => '€' + v }
+                                },
+                                x: { 
+                                    grid: { display: false },
+                                    ticks: { color: '#94a3b8' }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                renderCategoriesChart() {
+                    const ctx = this.$refs.chartCategories;
+                    if (!ctx || this.chartData.topCategories.length === 0) return;
+
+                    if (this.charts.categories) this.charts.categories.destroy();
+
+                    this.charts.categories = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: this.chartData.topCategories.map(c => c.name),
+                            datasets: [{
+                                data: this.chartData.topCategories.map(c => c.amount),
+                                backgroundColor: this.chartData.topCategories.map(c => c.color),
+                                borderWidth: 0,
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: ctx => `${ctx.label}: €${ctx.raw.toFixed(2)} (${this.chartData.topCategories[ctx.dataIndex].percentage}%)`
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                renderBalanceChart() {
+                    const ctx = this.$refs.chartBalance;
+                    if (!ctx) return;
+
+                    if (this.charts.balance) this.charts.balance.destroy();
+
+                    // Generate balance history
+                    const labels = [];
+                    const data = [];
+                    let balance = this.currentBalance;
+                    
+                    const transactions = [...this.manualTransactions].slice(0, 15).reverse();
+                    transactions.forEach((t, i) => {
+                        labels.push(t.date || `T${i+1}`);
+                        balance += t.type === 'out' ? t.amount : -t.amount;
+                        data.push(balance);
+                    });
+                    labels.push('Oggi');
+                    data.push(this.currentBalance);
+
+                    this.charts.balance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [{
+                                data,
+                                borderColor: '#06b6d4',
+                                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#06b6d4'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#94a3b8', callback: v => '€' + v }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#94a3b8', maxRotation: 45 }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                renderHealthRadarChart() {
+                    const ctx = this.$refs.chartHealthRadar;
+                    if (!ctx || !this.healthScore) return;
+
+                    if (this.charts.healthRadar) this.charts.healthRadar.destroy();
+
+                    const metrics = this.healthScore.metrics || {};
+                    const labels = ['Saving Rate', 'Debt Ratio', 'Budget', 'Emergency', 'Consistency'];
+                    const maxScores = [30, 25, 20, 15, 10];
+                    const data = [
+                        metrics.savingRate?.score || 0,
+                        metrics.debtRatio?.score || 0,
+                        metrics.budgetAdherence?.score || 0,
+                        metrics.emergencyFund?.score || 0,
+                        metrics.consistency?.score || 0
+                    ].map((score, i) => (score / maxScores[i]) * 100);
+
+                    this.charts.healthRadar = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels,
+                            datasets: [{
+                                data,
+                                backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                                borderColor: '#6366f1',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#6366f1',
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                r: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: 'rgba(255,255,255,0.1)' },
+                                    angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                    pointLabels: { color: '#94a3b8', font: { size: 10 } },
+                                    ticks: { display: false }
+                                }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                },
+
+                renderMonthlyTrendChart() {
+                    const ctx = this.$refs.chartMonthlyTrend;
+                    if (!ctx) return;
+
+                    if (this.charts.monthlyTrend) this.charts.monthlyTrend.destroy();
+
+                    // Generate last 6 months data
+                    const months = [];
+                    const incomeData = [];
+                    const expenseData = [];
+                    const savingsData = [];
+
+                    for (let i = 5; i >= 0; i--) {
+                        const date = new Date();
+                        date.setMonth(date.getMonth() - i);
+                        const monthName = date.toLocaleDateString('it-IT', { month: 'short' });
+                        months.push(monthName.charAt(0).toUpperCase() + monthName.slice(1));
+
+                        const monthTransactions = this.manualTransactions.filter(t => {
+                            const tDate = new Date(t.timestamp || t.date);
+                            return tDate.getMonth() === date.getMonth() && tDate.getFullYear() === date.getFullYear();
+                        });
+
+                        const income = monthTransactions.filter(t => t.type === 'in').reduce((s, t) => s + t.amount, 0);
+                        const expense = monthTransactions.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+                        
+                        incomeData.push(income);
+                        expenseData.push(expense);
+                        savingsData.push(income - expense);
+                    }
+
+                    this.charts.monthlyTrend = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: months,
+                            datasets: [
+                                {
+                                    label: 'Entrate',
+                                    data: incomeData,
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Uscite',
+                                    data: expenseData,
+                                    backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Risparmio',
+                                    data: savingsData,
+                                    type: 'line',
+                                    borderColor: '#6366f1',
+                                    backgroundColor: 'transparent',
+                                    tension: 0.4,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#6366f1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#94a3b8', callback: v => '€' + v }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#94a3b8' }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                renderGoalsProgressChart() {
+                    const ctx = this.$refs.chartGoalsProgress;
+                    if (!ctx || this.savingsGoals.length === 0) return;
+
+                    if (this.charts.goalsProgress) this.charts.goalsProgress.destroy();
+
+                    const labels = this.savingsGoals.map(g => g.name);
+                    const currentData = this.savingsGoals.map(g => g.currentAmount);
+                    const remainingData = this.savingsGoals.map(g => Math.max(0, g.targetAmount - g.currentAmount));
+
+                    this.charts.goalsProgress = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    label: 'Raggiunto',
+                                    data: currentData,
+                                    backgroundColor: 'rgba(236, 72, 153, 0.8)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Rimanente',
+                                    data: remainingData,
+                                    backgroundColor: 'rgba(100, 116, 139, 0.4)',
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#94a3b8', callback: v => '€' + v }
+                                },
+                                y: {
+                                    stacked: true,
+                                    grid: { display: false },
+                                    ticks: { color: '#94a3b8' }
+                                }
+                            }
+                        }
+                    });
                 },
 
                 getMetricColor(status) {
